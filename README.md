@@ -1,4 +1,4 @@
-# story_npc
+# Story NPC
 In-Game Programable NPC's
 
 
