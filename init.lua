@@ -1,5 +1,5 @@
-local MP 	= minetest.get_modpath(minetest.get_current_modname())
-local S, NS = dofile(MP..'/intllib.lua')
+local path	= minetest.get_modpath(minetest.get_current_modname())
+local S, NS = dofile(path..'/intllib.lua')
 
 -- Storage Buffer:
 local mesdat = {
@@ -11,8 +11,4 @@ _context = {}   --To be used for all sorts of things later
 assert(loadfile(path .. "/api.lua")) (mesdat)  --API is the core event subsystem, and entity editing
 assert(loadfile(path .. "/registrations.lua")) (mesdat) --Simply the Entity registrations using the API
 assert(loadfile(path .. "/commands.lua")) (mesdat) --Commands for working with entities more easily, like worldedit
-
-
-
-
 
