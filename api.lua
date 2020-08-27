@@ -32,7 +32,19 @@ end
 --
 --local filefunction = assert(loadfile("file.lua"))
 --local filefuncwithargs = assert(loadfile("funcargs.lua"))(10,20,30) --Note the (10,20,30) can be called later too
---In funcargs.lua: 'local a,b,c =...   ' 
+--In funcargs.lua: 'local a,b,c =...   '
+
+
+--
+-- Utility Functions from util.lua
+--
+
+--Edit-style formspec header
+local ehead,
+--Edit-style formspec footer
+efoot,
+--Forspec Sanitize Input Function
+mksafe = assert(loadfile("util.lua"))
 
 ----------------------------------------------------------------------------
 --                               Formspecs                                 -
@@ -56,26 +68,22 @@ end
 --
 
 local main, events, event, actions, triggers
-local aflag, adialog, aquery, ashop, anpc, amove, aitem, aquest
+local aflag, adialog, aquery, ashop, anpc, amove, aitem, aquest, aevent
 local tflag, tdialog, titem, tloc, tlos
 
 --
---  Main edit formspec
+--  Main edit formspec functions
 --
 
 local function on_recieve_main()
-    return true 
+    return true
 end
 
-main = function(variable)
+main = function(name)
     local text = "Hello World"
     local formspec = {
-        "formspec_version[3]",
-        "size[10,10,false]",
-        "real_coordinates[true]",
-        "position[0.5,0.5]",
         "label[0.375,0.5;", minetest.formspec_escape(text), "]",
-        --Name
+		"field[0.1,0.2;3,1;name;name:;" .. name .. "]",
         --Texture
         --Model
         --Text Color
@@ -89,8 +97,8 @@ main = function(variable)
         --Health Type
         --Max Health
     }
-        
-    return table.concat(formspec, "")
+
+    return ehead() .. table.concat(formspec, "") .. efoot("main")
 end
 
 minetest.register_on_joinplayer(function(ObjectRef, last_login)
@@ -131,7 +139,7 @@ end)
 --
 
 --
---  Action: Npc 
+--  Action: Npc
 --
 
 --
@@ -144,6 +152,10 @@ end)
 
 --
 --  Action: Quest
+--
+
+--
+--  Action: Event
 --
 
 --
@@ -163,7 +175,7 @@ end)
 --
 
 --
--- Trigger: Flag 
+-- Trigger: Flag
 --
 
 ----------------------------------------------------------------------------
@@ -173,7 +185,7 @@ end)
 ----------------------------------------------------------------------------
 
 --
---  
+--
 --
 
 
