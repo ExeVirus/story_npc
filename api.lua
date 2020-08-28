@@ -44,7 +44,19 @@ local ehead,
 --Edit-style formspec footer
 efoot,
 --Forspec Sanitize Input Function
-mksafe = assert(loadfile("util.lua"))
+mksafe,
+--Texture List Table (alphabetical, reverse lookup based on texture_name
+texture_table,
+-- texture_list
+texture_list,
+--Model List Table (alphabetical, reverse lookup based on texture_name
+model_table,
+-- model_list
+model_list,
+--sound List Table (alphabetical, reverse lookup based on texture_name
+sound_table,
+-- sound_list
+sound_list = (assert(loadfile("util.lua"))
 
 ----------------------------------------------------------------------------
 --                               Formspecs                                 -
@@ -79,23 +91,25 @@ local function on_recieve_main()
     return true
 end
 
-main = function(name)
+main = function(name, texture_name, model_name, color, bgcolor, sound_nameg, sound_namei)
     local text = "Hello World"
     local formspec = {
         "label[0.375,0.5;", minetest.formspec_escape(text), "]",
-		"field[0.1,0.2;3,1;name;name:;" .. name .. "]",
-        --Texture
-        --Model
-        --Text Color
-        --Text Background Color
-        --Sound (general)
-        --Sound (on interact)
+		"field[1,1;3,1;name;name:;" .. name .. "]",
+		"label[0,2;
+		"dropdown[1,2;3,2;texture;" .. texture_list .. ";" .. texture_table[texture_name] .. ";]",
+        "dropdown[1,4;3,2;model;" .. model_list .. ";" .. model_table[model_name] .. ";]",
+        "field[1,7;3,1;color;Dialog Color:;" .. color .. "]",
+		"field[1,8;3,1;color;Dialog BGColor:;" .. bgcolor .. "]",
+		"dropdown[1,4;3,2;Sound Rand;" .. sound_list .. ";" .. sound_table[sound_nameg] .. ";]",
+		"dropdown[1,4;3,2;Sound Itract;" .. sound_list .. ";" .. sound_table[sound_namei] .. ";]",
         --Movement Type
         --Movement edit-box (coordinates)
         --Events
         --Position (useful for moving an entity)
         --Health Type
         --Max Health
+		--Save All Changes
     }
 
     return ehead() .. table.concat(formspec, "") .. efoot("main")
