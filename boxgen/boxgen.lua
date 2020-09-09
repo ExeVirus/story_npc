@@ -105,10 +105,108 @@ end
 
 local inspect = require "./inspect"
 
+function loader.deref(object)
+	local obj = {}
+	for i, v in ipairs(object.f) do
+		local val = {}
+		for j=1,3 do
+			--print(object.f[i][j])
+			--print(inspect(object.v[ object.f[i][j] ]))
+			table.insert(val, object.v[ object.f[i][j] ])
+		end
+		table.insert(obj, val)
+	end
+	return obj
+end
+
+
+
+--~ local objfile = loader.load("models/flat.obj")
+
+--~ local export = io.open("test.lua", "w+")
+
+--~ io.output(export)
+
+--~ io.write(inspect(objfile))
+
+--~ io.close(export)
+
+--~ local export2 = io.open("test2.lua", "w+")
+
+--~ io.output(export2)
+
+--~ for i,v in ipairs(loader.deref(objfile)) do
+--~ 	io.write(i .. "\n" .. inspect(v) .. "\n")
+--~ end
+
+--~ io.close(export2)
+
+
+--
+-- Loader.voxelize( object, spacing )
+-- Object is a table of triangles
+-- spacing is the resulting voxel cube side-length
+-- A node is 1. Therefore, 1/10 is 0.1. etc.
+--
+
+--
+-- Returns an object containing info about the grid
+-- as well as the resulting voxel data
+--
+
+-- https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
+
+--
+-- First, function determines the max size grid to voxelize on
+-- by calculating a simple bounding box (using spacing as a min size)
+-- the offset to a corner of the bounding box is also stored to
+-- align the voxe-grid later
+
+-- Next, each voxel center-point is ray cast in the positive X direction
+--      Based on the number of triangle intersections we determine if
+--      we are inside or outside the object(s)
+-- Using this information, mark the voxel inside or outside.
+
+-- Finally, we return our resulting voxel grid
+
+function loader.voxelize(object, spacing)
+	local grid = {}
+
+	return grid
+end
+
+--
+-- Degrid(grid) -- parses all filled grid values into single array of vertexes
+--
+
+
+function loader.degrid(grid)
+	local array = {}
+
+	return array
+end
+
+--
+-- Cluster(array, k) -- takes array of vertexes from de-grid
+--
+-- and calculates *k* means of the dataset and groups the vertexes
+-- to these means, adding a fourth value for the mean-number
+
+-- https://towardsdatascience.com/the-5-clustering-algorithms-data-scientists-need-to-know-a36d136ef68
+
+
+function loader.cluster(array, k)
+	local clusters
+end
+
+
+local objfile = loader.deref(loader.load("models/flat.obj"))
+
 local export = io.open("test.lua", "w+")
 
 io.output(export)
 
-io.write(inspect(loader.load("models/flat.obj")))
+io.write(inspect(objfile))
 
 io.close(export)
+
