@@ -110,8 +110,6 @@ function loader.deref(object)
 	for i, v in ipairs(object.f) do
 		local val = {}
 		for j=1,3 do
-			--print(object.f[i][j])
-			--print(inspect(object.v[ object.f[i][j] ]))
 			table.insert(val, object.v[ object.f[i][j] ])
 		end
 		table.insert(obj, val)
@@ -121,25 +119,53 @@ end
 
 
 
---~ local objfile = loader.load("models/flat.obj")
+local objfile = loader.load("models/flat.obj")
 
---~ local export = io.open("test.lua", "w+")
+local export = io.open("test.html", "w+")
 
---~ io.output(export)
+io.output(export)
 
---~ io.write(inspect(objfile))
+local plotly_header = require "./plotly_header"
 
---~ io.close(export)
+io.write(plotly_header)
 
---~ local export2 = io.open("test2.lua", "w+")
+io.write("<script>")
+io.write("var trace1 = JSON.parse(")
+--Write the object
+io.write([[{"x": []])
+for i,v in ipairs(loader.deref(objfile)) do
+ 	io.write('"' .. v .. "\n")
+end
 
---~ io.output(export2)
 
---~ for i,v in ipairs(loader.deref(objfile)) do
---~ 	io.write(i .. "\n" .. inspect(v) .. "\n")
---~ end
 
---~ io.close(export2)
+
+io.write([[);
+var data = [trace1];
+var layout = {margin: {
+		l: 0
+		r: 0
+		b: 0
+		t: 0
+	});
+Plotly.newPlot('myDiv', data, layout);
+});
+</script>
+]])
+
+--io.write(inspect(objfile))
+
+io.close(export)
+
+local export2 = io.open("test2.lua", "w+")
+
+io.output(export2)
+
+for i,v in ipairs(loader.deref(objfile)) do
+ 	io.write(i .. "\n" .. inspect(v) .. "\n")
+end
+
+io.close(export2)
 
 
 --
