@@ -222,6 +222,18 @@ function boundingBox( object )
 	return offset, dimensions
 end
 
+------------ Function raycast( x,y,z, triangle ) ---------------------
+--
+--		args: 	x,y,z of point to raycast from
+-- 				triangle: {{x,y,z},{x,y,z},{z,y,z}}
+--		returns: 1 or 0
+--
+
+function raycast( x,y,z, triangle)
+
+	return 1
+end
+
 
 --
 -- Loader.voxelize( object, spacing )
@@ -253,11 +265,29 @@ end
 function loader.voxelize(object, spacing)
 	local grid = {}
 	grid.offset, grid.dimensions = boundingBox( object )
+	--Note: if you're spacing is too large, the object will 100% fail to be voxelized in a useful manner. You
+	--need at least 2 points in all directions to make a box. 1 point in any direction doesn't cut it.
+	grid.voxels = {}
+	local index = 1
+	grid.spacing = spacing
 	if(spacing < grid.dimensions.x and spacing < grid.dimensions.y and spacing < grid.dimensions.z) then
 		for i = grid.offset.x, grid.offset.x+grid.dimensions.x, spacing do
 			for j = grid.offset.y, grid.offset.y+grid.dimensions.y, spacing do
 				for k = grid.offset.z, grid.offset.z+grid.dimensions.z, spacing do
-
+					--Now to check each point and see if it is insize or outside our object
+					-- (i,j,k) = point
+					local count = 0
+					for i, v in ipairs(object) do
+						count = count + raycast(i,j,k,v)
+					end
+					if ( count % 2 == 0) then
+						grid.voxels[index] = 0
+						--we are outside
+					else
+						grid.voxels[index] = 1
+						--we are inside
+					end
+					index = index + 1
 				end
 			end
 		end
@@ -266,9 +296,11 @@ function loader.voxelize(object, spacing)
 	return grid
 end
 
-loader.voxelize(loader.deref(objfile),0.1)
+print(inspect(loader.voxelize(loader.deref(objfile),0.1)))
+
+--loader.voxelize(loader.deref(objfile),0.1)
 --
--- Degrid(grid) -- parses all filled grid values into single array of vertexes
+-- Degrid(grid) -- parses all filled grid values into single array of vertexes (For viewing)
 --
 
 
