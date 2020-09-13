@@ -129,31 +129,54 @@ local plotly_header = require "./plotly_header"
 
 io.write(plotly_header)
 
-io.write("<script>")
-io.write("var trace1 = JSON.parse(")
---Write the object
-io.write([[{"x": []])
-for i,v in ipairs(loader.deref(objfile)) do
- 	io.write('"' .. v .. "\n")
+io.write("<script>\n")
+io.write("var data = [{ \n")
+io.write('type: "mesh3d",\n')
+--Write the X's
+io.write('x: [')
+for i,v in ipairs(objfile.v) do
+	io.write(v.x .. ", ")
 end
+io.write('],\n');
+--Write the Y's
+io.write('y: [')
+for i,v in ipairs(objfile.v) do
+	io.write(v.y .. ", ")
+end
+io.write('],\n');
+--Write the Z's
+io.write('z: [')
+for i,v in ipairs(objfile.v) do
+	io.write(v.z .. ", ")
+end
+io.write('],\n');
+--Write the I's
+io.write('i: [')
+for i,v in ipairs(objfile.f) do
+	io.write(v[1]-1 .. ", ")
+end
+io.write('],\n');
+--Write the J's
+io.write('j: [')
+for i,v in ipairs(objfile.f) do
+	io.write(v[2]-1 .. ", ")
+end
+io.write('],\n');
+--Write the K's
+io.write('k: [')
+for i,v in ipairs(objfile.f) do
+	io.write(v[3]-1 .. ", ")
+end
+io.write('],\n');
 
-
-
-
-io.write([[);
-var data = [trace1];
-var layout = {margin: {
-		l: 0
-		r: 0
-		b: 0
-		t: 0
-	});
-Plotly.newPlot('myDiv', data, layout);
-});
+io.write([[
+	opacity:0.2,
+    color:'rgb(200,100,300)',
+}];
+Plotly.newPlot('myDiv', data);
 </script>
 ]])
 
---io.write(inspect(objfile))
 
 io.close(export)
 
@@ -166,6 +189,38 @@ for i,v in ipairs(loader.deref(objfile)) do
 end
 
 io.close(export2)
+
+-- function Bounding Box -----------------
+--
+--  args: object (table of triangles and vertices, dereferenced)
+--
+--  returns: (table) offset {x,y,z}
+--  		 (table) dimensions {w,h,d}
+
+function boundingBox( object )
+	local offset = {}
+	offset.x = object[1][1].x
+	offset.y = object[1][1].y
+	offset.z = object[1][1].z
+	local dimensions = {}
+	dimensions.x = object[1][1].x
+	dimensions.y = object[1][1].y
+	dimensions.z = object[1][1].z
+	for i, v in ipairs(object) do
+		for j=1, 3 do
+			offset.x = math.min(v[j].x, offset.x)
+			dimensions.x = math.max(v[j].x, dimensions.x)
+			offset.y = math.min(v[j].y, offset.y)
+			dimensions.y = math.max(v[j].y, dimensions.y)
+			offset.z = math.min(v[j].z, offset.z)
+			dimensions.z = math.max(v[j].z, dimensions.z)
+		end
+	end
+	dimensions.x = dimensions.x-offset.x
+	dimensions.y = dimensions.y-offset.y
+	dimensions.z = dimensions.z-offset.z
+	return offset, dimensions
+end
 
 
 --
@@ -186,7 +241,7 @@ io.close(export2)
 -- First, function determines the max size grid to voxelize on
 -- by calculating a simple bounding box (using spacing as a min size)
 -- the offset to a corner of the bounding box is also stored to
--- align the voxe-grid later
+-- align the voxel-grid later
 
 -- Next, each voxel center-point is ray cast in the positive X direction
 --      Based on the number of triangle intersections we determine if
@@ -197,10 +252,21 @@ io.close(export2)
 
 function loader.voxelize(object, spacing)
 	local grid = {}
+	grid.offset, grid.dimensions = boundingBox( object )
+	if(spacing < grid.dimensions.x and spacing < grid.dimensions.y and spacing < grid.dimensions.z) then
+		for i = grid.offset.x, grid.offset.x+grid.dimensions.x, spacing do
+			for j = grid.offset.y, grid.offset.y+grid.dimensions.y, spacing do
+				for k = grid.offset.z, grid.offset.z+grid.dimensions.z, spacing do
+
+				end
+			end
+		end
+	end
 
 	return grid
 end
 
+loader.voxelize(loader.deref(objfile),0.1)
 --
 -- Degrid(grid) -- parses all filled grid values into single array of vertexes
 --
