@@ -311,18 +311,69 @@ function loader.degrid(grid)
 end
 
 --
+-- Break Up: Splits the bounding boxes into groups that fit max node bounding box size (-1.49, 1.49)
+--
+function loader.breakup(grid)
+	local groups = {}
+
+	return groups
+end
+
+--
 -- Cluster(array, k) -- takes array of vertexes from de-grid
 --
--- and calculates *k* means of the dataset and groups the vertexes
--- to these means, adding a fourth value for the mean-number
+-- and calculates means-shift of the dataset and groups the vertexes
+-- to these means, placing them in their own array set to be prased later
 
 -- https://towardsdatascience.com/the-5-clustering-algorithms-data-scientists-need-to-know-a36d136ef68
 
 
-function loader.cluster(array, k)
-	local clusters
+function loader.cluster(array, radius)
+	local clusters = {}
+
+	return clusters
 end
 
+
+--
+-- Bound - Generates best fit bounding boxes for the provided clusters of points
+-- (must be larger than a certain default size, otherwise it's discarded.
+-- according to quality values for including space or filled spots
+-- any points not included are added to a "unused" array
+--
+
+function loader.bound(clusters, minsize, fillQ, unfillQ
+	local bounds = {}
+	local leftovers = {}
+
+	return bounds, leftovers
+end
+
+--
+-- Re-run leftovers through loader.cluster and loader.bound until complete.
+--
+
+--
+-- Save all bounding boxes for the given -1.49 -> 1.49 area
+--
+
+--
+--Repeat for every -1.49->1.49 area
+--
+
+
+
+
+
+
+--
+-- Export Javascript viewing file
+-- (subplots)
+
+
+--
+-- Export Minetest Readable data
+--
 
 local objfile = loader.deref(loader.load("models/flat.obj"))
 
