@@ -119,7 +119,7 @@ end
 
 
 
-local objfile = loader.load("models/flat.obj")
+local objfile = loader.load("models/spike.obj")
 
 local export = io.open("test.html", "w+")
 
@@ -177,6 +177,7 @@ Plotly.newPlot('myDiv', data);
 </script>
 ]])
 
+print("wrote test.html\n")
 
 io.close(export)
 
@@ -229,11 +230,50 @@ end
 --		returns: 1 or 0
 --
 
-function raycast( x,y,z, triangle)
+local vector = require("vector")
 
-	return 1
+function raycast( x,y,z, triangle)
+	local EPSILON = 0.00001
+	local rayOrigin = vector.new( x, y, z)
+	local rayVector = vector.new( 0, 1, 0)
+
+	local vert0 = triangle[1]
+	local vert1 = triangle[2]
+	local vert2 = triangle[3]
+
+	local edge1 = vector.subtract(vert1, vert0)
+	local edge2 = vector.subtract(vert2, vert0)
+
+	local h = vector.cross(rayVector, edge2)
+	local a = vector.dot(edge1, h)
+
+	if (a > -EPSILON and a < EPSILON) then
+		return 0 --Ray is parallel to triangle
+	end
+
+	local f = 1.0 / a
+	local s = vector.subtract(rayOrigin, vert0)
+	local u = f * vector.dot(s, h)
+	if( u < 0.0 or u > 1.0) then
+		return 0
+	end
+
+	local q = vector.cross(s, edge1)
+	local v = f * vector.dot(rayVector, q)
+
+	if ( v < 0.0 or (u+v) > 1.0) then
+		return 0
+	end
+
+	local t = f * vector.dot(edge2, q)
+	if ( t > EPSILON ) then
+		return 1 --Ray intersection
+	end
+    --Line intersection
+	return 0
 end
 
+--print(raycast( 1,1.5,1, {{x=0, y=2, z=0},{x=1,y=2,z=2},{x=2,y=2,z=0}} ))
 
 --
 -- Loader.voxelize( object, spacing )
@@ -268,7 +308,9 @@ function loader.voxelize(object, spacing)
 	--Note: if you're spacing is too large, the object will 100% fail to be voxelized in a useful manner. You
 	--need at least 2 points in all directions to make a box. 1 point in any direction doesn't cut it.
 	grid.voxels = {}
+	grid.voxel_verts = {}
 	local index = 1
+	local indexverts = 1
 	grid.spacing = spacing
 	if(spacing < grid.dimensions.x and spacing < grid.dimensions.y and spacing < grid.dimensions.z) then
 		for i = grid.offset.x, grid.offset.x+grid.dimensions.x, spacing do
@@ -277,42 +319,154 @@ function loader.voxelize(object, spacing)
 					--Now to check each point and see if it is insize or outside our object
 					-- (i,j,k) = point
 					local count = 0
-					for i, v in ipairs(object) do
+					for q, v in ipairs(object) do
 						count = count + raycast(i,j,k,v)
 					end
 					if ( count % 2 == 0) then
 						grid.voxels[index] = 0
 						--we are outside
 					else
+
 						grid.voxels[index] = 1
+						grid.voxel_verts[indexverts] = vector.new( i, j, k)
+						indexverts = indexverts + 1
 						--we are inside
 					end
 					index = index + 1
 				end
 			end
+			print( (i-grid.offset.x)/spacing / (grid.dimensions.x / spacing) * 100 .. "% complete")
 		end
 	end
 
 	return grid
 end
 
-print(inspect(loader.voxelize(loader.deref(objfile),0.1)))
+print("starting voxelize\n")
+--loader.voxelize(loader.deref(objfile),0.1)
+local grid = loader.voxelize(loader.deref(objfile),0.1)
+--print(inspect(grid))
+print("Finished voxelize\n")
 
 --loader.voxelize(loader.deref(objfile),0.1)
+
 --
--- Degrid(grid) -- parses all filled grid values into single array of vertexes (For viewing)
+-- Function view_result(grid) -- Shows the filled verticies from voxelize
 --
 
+function loader.view_result(grid)
+	local output = ""--String for plotly
+	--strings for x's, y's, z's :)
+	local xs = "x: ["
+	local ys = "y: ["
+	local zs = "z: ["
+	for i, v in ipairs(grid.voxel_verts) do
+		xs = xs .. v.x .. ", "
+		ys = ys .. v.y .. ", "
+		zs = zs .. v.z .. ", "
+	end
+	xs = xs .. "],\n"
+	ys = ys .. "],\n"
+	zs = zs .. "],\n"
 
-function loader.degrid(grid)
-	local array = {}
-
-	return array
+	output = output .. "var grid = {\n"
+	output = output .. xs
+	output = output .. ys
+	output = output .. zs
+	output = output .. "mode: 'markers',\n"
+	output = output .. "marker: { size: 2},\n"
+	output = output .. "name: 'grid',\n"
+	output = output .. "type: 'scatter3d',\n}\n"
+	return output
 end
+
+print("starting export for test2.html")
+
+
+local export = io.open("test2.html", "w+")
+
+io.output(export)
+
+local plotly_header = require "./plotly_header"
+
+io.write(plotly_header)
+
+io.write("<script>\n")
+io.write(loader.view_result(grid))
+io.write("var data = [{ \n")
+io.write('type: "mesh3d",\n')
+--Write the X's
+io.write('x: [')
+for i,v in ipairs(objfile.v) do
+	io.write(v.x .. ", ")
+end
+io.write('],\n');
+--Write the Y's
+io.write('y: [')
+for i,v in ipairs(objfile.v) do
+	io.write(v.y .. ", ")
+end
+io.write('],\n');
+--Write the Z's
+io.write('z: [')
+for i,v in ipairs(objfile.v) do
+	io.write(v.z .. ", ")
+end
+io.write('],\n');
+--Write the I's
+io.write('i: [')
+for i,v in ipairs(objfile.f) do
+	io.write(v[1]-1 .. ", ")
+end
+io.write('],\n');
+--Write the J's
+io.write('j: [')
+for i,v in ipairs(objfile.f) do
+	io.write(v[2]-1 .. ", ")
+end
+io.write('],\n');
+--Write the K's
+io.write('k: [')
+for i,v in ipairs(objfile.f) do
+	io.write(v[3]-1 .. ", ")
+end
+io.write('],\n');
+
+io.write([[
+	opacity:0.2,
+    color:'rgb(200,100,300)',
+	name: 'obj',
+	showlegend: true,
+}, grid];
+
+var layout = {
+  autosize: false,
+  width: 1200,
+  height: 1000,
+  margin: {
+    l: 200,
+    r: 0,
+    b: 0,
+    t: 0,
+    pad: 4
+  },
+  showlegend: true,
+  legend: {
+	x: 1,
+	y: 0.5,
+   },
+};
+
+Plotly.newPlot('myDiv', data, layout);
+</script>
+]])
+
+
+io.close(export)
 
 --
 -- Break Up: Splits the bounding boxes into groups that fit max node bounding box size (-1.49, 1.49)
---
+-- I.e. groups of filled and unfilled vertexes, each basically a fully filled "grid"
 function loader.breakup(grid)
 	local groups = {}
 
@@ -323,7 +477,7 @@ end
 -- Cluster(array, k) -- takes array of vertexes from de-grid
 --
 -- and calculates means-shift of the dataset and groups the vertexes
--- to these means, placing them in their own array set to be prased later
+-- to these means, placing them in their own array set to be parsed later
 
 -- https://towardsdatascience.com/the-5-clustering-algorithms-data-scientists-need-to-know-a36d136ef68
 
@@ -342,7 +496,7 @@ end
 -- any points not included are added to a "unused" array
 --
 
-function loader.bound(clusters, minsize, fillQ, unfillQ
+function loader.bound(clusters, minsize, fillQ, unfillQ)
 	local bounds = {}
 	local leftovers = {}
 
@@ -375,7 +529,7 @@ end
 -- Export Minetest Readable data
 --
 
-local objfile = loader.deref(loader.load("models/flat.obj"))
+local objfile = loader.deref(loader.load("models/spike.obj"))
 
 local export = io.open("test.lua", "w+")
 
