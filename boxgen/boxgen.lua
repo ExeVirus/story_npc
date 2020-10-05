@@ -338,6 +338,8 @@ function loader.voxelize(object, spacing)
 			print( (i-grid.offset.x)/spacing / (grid.dimensions.x / spacing) * 100 .. "% complete")
 		end
 	end
+	grid.numberOfVoxels = index
+	grid.numberOfFilledVoxels = indexverts
 
 	return grid
 end
@@ -465,24 +467,71 @@ Plotly.newPlot('myDiv', data, layout);
 io.close(export)
 
 --
--- Break Up: Splits the bounding boxes into groups that fit max node bounding box size (-1.49, 1.49)
--- I.e. groups of filled and unfilled vertexes, each basically a fully filled "grid"
-function loader.breakup(grid)
+-- Break Up(grid): Splits the grid into multiple grids that fit max node bounding box size (-1.5, 1.5)
+-- grid = object containing dimensions and vertex values in linear array.
+-- the returned groups contains multiple "grids" and has an associated "size" saying how many groups there are
+-- Empty resulting boxes are not found at this time.
+function loader.breakup(grid, inspect)
 	local groups = {}
+	local q = 3 --q = cutoff
+	groups.size = {}
+	groups.size.x = math.floor((grid.dimensions.x / q)+0.99999)
+	groups.size.y = math.floor((grid.dimensions.y / q)+0.99999)
+	groups.size.z = math.floor((grid.dimensions.z / q)+0.99999)
+	groups.grid = {}
+	if(groups.size.x + groups.size.y + groups.size.z ~= q) then
+		local index = 1
+		--First set up our various grids for being filled with voxels
+		for i = 0, groups.size.x-1, 1 do
+			for j = 0, groups.size.y-1, 1 do
+				for k = 1, groups.size.z, 1 do
+					index = k+j*groups.size.z+i*groups.size.z*groups.size.y
+					groups.grid[index] = {}
+					groups.grid[index].numberOfVoxels = 0
+					--Calculate the offsets
+					groups.grid[index].offset = {}
+					groups.grid[index].offset.x = grid.offset.x + q * (i)
+					groups.grid[index].offset.y = grid.offset.y + q * (j)
+					groups.grid[index].offset.z = grid.offset.z + q * (k-1)
+					--Calculate the dimensions, lessor of full expected length and remaining original grid dimension
+					groups.grid[index].dimensions = {}
+					groups.grid[index].dimensions.x = math.min(q, grid.dimensions.x - q * i)
+					groups.grid[index].dimensions.y = math.min(q, grid.dimensions.y - q * j)
+					groups.grid[index].dimensions.z = math.min(q, grid.dimensions.z - q * (k-1))
+				end
+			end
+		end
+	--Iterate through all voxels linearly. Assign them to various grids, and give the grid's dimensions....
+		local xGridLength = math.floor(grid.dimensions.x/grid.spacing)
+		local yGridLength = math.floor(grid.dimensions.y/grid.spacing)
+		local zGridLength = math.floor(grid.dimensions.z/grid.spacing)
+		index = 1
+		for i = 0, xGridLength-1, 1 do
+			for j = 0, yGridLength-1, 1 do
+				for k = 1, zGridLength, 1 do
+					index = k + j * zGridLength + i * yGridLength * zGridLength--re-doing our array reference :)
+				end
+			end
+		end
+	else
+		groups.grid[1] = grid --Only 1 grid in -1.49->1.49.
+	end
 
 	return groups
 end
 
+loader.breakup(grid, inspect)
+
 --
--- Cluster(array, k) -- takes array of vertexes from de-grid
+-- boxify(grid, minfill, minsize) -- takes grid object of vertexes, and dimensions from de-grid
 --
--- and calculates means-shift of the dataset and groups the vertexes
--- to these means, placing them in their own array set to be parsed later
+-- and uses a greedy algorithm to combine the vertexes into boxes. Minfill is the minimum percentage filled
+-- Each resulting box can be (70-100% are good numbers). Minsize is a minimum volume a given box can be.
 
--- https://towardsdatascience.com/the-5-clustering-algorithms-data-scientists-need-to-know-a36d136ef68
+-- My own algorithm
 
 
-function loader.cluster(array, radius)
+function loader.boxify(grid, minfill, minsize)
 	local clusters = {}
 
 	return clusters
