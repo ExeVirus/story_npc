@@ -338,8 +338,8 @@ function loader.voxelize(object, spacing)
 			print( (i-grid.offset.x)/spacing / (grid.dimensions.x / spacing) * 100 .. "% complete")
 		end
 	end
-	grid.numberOfVoxels = index
-	grid.numberOfFilledVoxels = indexverts
+	grid.numberOfVoxels = index - 1
+	grid.numberOfFilledVoxels = indexverts - 1
 
 	return grid
 end
@@ -474,6 +474,8 @@ io.close(export)
 function loader.breakup(grid, inspect)
 	local groups = {}
 	local q = 3 --q = cutoff
+
+	--groups.size is the number of broken up boxes along each axis.
 	groups.size = {}
 	groups.size.x = math.floor((grid.dimensions.x / q)+0.99999)
 	groups.size.y = math.floor((grid.dimensions.y / q)+0.99999)
@@ -488,6 +490,8 @@ function loader.breakup(grid, inspect)
 					index = k+j*groups.size.z+i*groups.size.z*groups.size.y
 					groups.grid[index] = {}
 					groups.grid[index].numberOfVoxels = 0
+					groups.grid[index].spacing = grid.spacing
+					groups.grid[index].voxels = {}
 					--Calculate the offsets
 					groups.grid[index].offset = {}
 					groups.grid[index].offset.x = grid.offset.x + q * (i)
@@ -505,11 +509,25 @@ function loader.breakup(grid, inspect)
 		local xGridLength = math.floor(grid.dimensions.x/grid.spacing)
 		local yGridLength = math.floor(grid.dimensions.y/grid.spacing)
 		local zGridLength = math.floor(grid.dimensions.z/grid.spacing)
+
+		--Get the number of voxels in each subdivided q by q by q box
+		local voxelLength = {}
+		voxelLength.x = q / grid.spacing
+		voxelLength.y = q / grid.spacing
+		voxelLength.z = q / grid.spacing
+		local xGrid, yGrid, ZGrid, ind
 		index = 1
 		for i = 0, xGridLength-1, 1 do
+			xGrid = math.floor(i / voxelLength.x)
 			for j = 0, yGridLength-1, 1 do
+				yGrid = math.floor(j / voxelLength.y)
 				for k = 1, zGridLength, 1 do
+					zGrid = math.floor(k / voxelLength.z)
 					index = k + j * zGridLength + i * yGridLength * zGridLength--re-doing our array reference :)
+					--Now assign the voxel to the associated grid, hopefully the indexes line up correctly....
+					ind = 1 + zGrid + yGrid * groups.size.z + xGrid * groups.size.z * groups.size.y
+					groups.grid[ind].voxels[groups.grid[ind].numberOfVoxels+1] = grid.voxels[index]
+					groups.grid[ind].numberOfVoxels = 1 + groups.grid[ind].numberOfVoxels
 				end
 			end
 		end
@@ -520,22 +538,78 @@ function loader.breakup(grid, inspect)
 	return groups
 end
 
-loader.breakup(grid, inspect)
+local groups = loader.breakup(grid)
 
 --
--- boxify(grid, minfill, minsize) -- takes grid object of vertexes, and dimensions from de-grid
+-- boxify(ggroups minfill, minsize) -- takes a group of grid objects of vertexes, and dimensions from de-grid
 --
--- and uses a greedy algorithm to combine the vertexes into boxes. Minfill is the minimum percentage filled
--- Each resulting box can be (70-100% are good numbers). Minsize is a minimum volume a given box can be.
+-- and uses a greedy algorithm to combine the vertexes into boxes. Minfill is the minimum percentage filled (70-100% are good numbers)
+-- Each resulting box can be. Minsize is a minimum volume a given box can be.
 
--- My own algorithm
+-- This is my own algorithm. Not really optimized, but good results :)
 
 
-function loader.boxify(grid, minfill, minsize)
-	local clusters = {}
+function loader.boxify(groups, minfill, minsize)
+	local boxGroups = {}
+	for a = 0, groups.size.x-1, 1 do
+		for b = 0, groups.size.y-1, 1 do
+			for c = 1, groups.size.z, 1 do
+				local grindex = c+b*groups.size.z+a*groups.size.z*groups.size.y
+				--Instantiate a new object to store the resulting boxes
+				boxGroups[grindex] = {}
+				boxGroups[grindex].numBoxes = 0 --initially
+				boxGroups[grindex].boxes = {}
 
-	return clusters
+				-----------Now we go through the grid and algorithm--------------------
+
+				--First we get the number of voxels along each axis for the grid
+				local gridLengths = {}
+				gridLengths.x = math.floor(groups.grid[grindex].dimensions.x / groups.grid[grindex].spacing)
+				gridLengths.y = math.floor(groups.grid[grindex].dimensions.y / groups.grid[grindex].spacing)
+				gridLengths.z = math.floor(groups.grid[grindex].dimensions.z / groups.grid[grindex].spacing)
+
+				--Now we loop through all of the voxels until there are no voxels left after the algorithm eats them
+				--Every time we build ourselves a box, we will remove those voxels, we also will reset our search loop back to the
+				--beginning so that we research the grid, until finished.
+				for i = 0, gridLengths.x-1, 1 do
+					for j = 0, gridLengths.y-1, 1 do
+						for k = 1, gridLengths.z do
+							voxeldex = k + j * gridLengths.z + i * gridLengths.z * gridLengths.y
+							if groups.grid[grindex].voxels[voxeldex] == 1 then -- Found the first filled voxel
+								--Set our start and end corner in voxel coordinates
+								local box = {}
+								box.start = {}
+								box.end = {}
+								box.start.x = i
+								box.start.y = j
+								box.start.z = k
+								box.end.x = i
+								box.end.y = j
+								box.end.z = k
+								--Now to execute our greedy algorithm
+								local run_algo = true
+								while run_algo do
+
+
+								end
+							end
+						end
+					end
+				end
+
+
+
+
+
+				-----------End Algorithm----------------------
+
+			end
+		end
+	end
+	return boxGroups
 end
+
+
 
 
 --
