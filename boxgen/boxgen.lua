@@ -119,7 +119,7 @@ end
 
 
 
-local objfile = loader.load("models/spike.obj")
+local objfile = loader.load("models/glove.obj")
 
 local export = io.open("test.html", "w+")
 
@@ -534,6 +534,7 @@ function loader.breakup(grid, inspect)
 		end
 	else
 		groups.grid[1] = grid --Only 1 grid in -1.49->1.49.
+		groups.grid[1].numFilledVoxels = grid.numberOfFilledVoxels
 	end
 
 	return groups
@@ -829,113 +830,126 @@ function loader.boxify(groups, minfill, minsize, inspect)
 									while tries > 0 and finding do
 										local maxVoxel = math.max(remaining.left, remaining.right, remaining.up, remaining.down, remaining.forward, remaining.backward)
 
-									print("MaxVoxel = "..maxVoxel)
-									print("NumVoxel = "..inspect(numVoxel))
-									print(inspect(box))
-									io.stdin:read'*l'
+--~ 									print("MaxVoxel = "..maxVoxel)
+--~ 									print("NumVoxel = "..inspect(numVoxel))
+--~ 									print(inspect(box))
+--~ 									io.stdin:read'*l'
 
-									if numVoxel.left == maxVoxel and finding then --Then let's try left first
-										local filled = box.filled + numVoxel.left --number filled voxels
-										local unfilled = box.unfilled + (box.fin.y-box.start.y+1)*(box.fin.z-box.start.z+1) - numVoxel.left --number unfilled
-										if unfilled == 0 then
-											box.start.x = box.start.x - 1 --Grow our box
-											box.filled = filled --Update our filled,unfilled status
-											box.unfilled = unfilled
-											finding = false --We're done with this iteration
-										elseif filled/(unfilled+filled) > minfill then --minfill is given to the function, minimum filled voxel in each box
-											box.start.x = box.start.x - 1 --Grow our box
-											box.filled = filled --Update our filled,unfilled status
-											box.unfilled = unfilled
-											finding = false --We're done with this iteration
+										if remaining.left == maxVoxel and finding then --Then let's try left first
+											local filled = box.filled + numVoxel.left --number filled voxels
+											local unfilled = box.unfilled + (box.fin.y-box.start.y+1)*(box.fin.z-box.start.z+1) - numVoxel.left --number unfilled
+											if unfilled == 0 then
+												box.start.x = box.start.x - 1 --Grow our box
+												box.filled = filled --Update our filled,unfilled status
+												box.unfilled = unfilled
+												finding = false --We're done with this iteration
+											elseif filled/(unfilled+filled) > minfill then --minfill is given to the function, minimum filled voxel in each box
+												box.start.x = box.start.x - 1 --Grow our box
+												box.filled = filled --Update our filled,unfilled status
+												box.unfilled = unfilled
+												finding = false --We're done with this iteration
+											end
+											--If it was less than minfill, remove from search list and let's check the others...
+											remaining.left = 0
+											tries = tries - 1
 										end
-										--If it was less than minfill, let's check the others...
-									end
 
-									if numVoxel.right == maxVoxel and finding then --Then let's try left first
-										local filled = box.filled + numVoxel.right --number filled voxels
-										local unfilled = box.unfilled + (box.fin.y-box.start.y+1)*(box.fin.z-box.start.z+1) - numVoxel.right --number unfilled
-										if unfilled == 0 then
-											box.fin.x = box.fin.x + 1 --Grow our box
-											box.filled = filled --Update our filled,unfilled status
-											box.unfilled = unfilled
-											finding = false --We're done with this iteration
-										elseif filled/(unfilled+filled) > minfill then --minfill is given to the function, minimum filled voxel in each box
-											box.fin.x = box.fin.x + 1 --Grow our box
-											box.filled = filled --Update our filled,unfilled status
-											box.unfilled = unfilled
-											finding = false --We're done with this iteration
+										if remaining.right == maxVoxel and finding then --Then let's try left first
+											local filled = box.filled + numVoxel.right --number filled voxels
+											local unfilled = box.unfilled + (box.fin.y-box.start.y+1)*(box.fin.z-box.start.z+1) - numVoxel.right --number unfilled
+											if unfilled == 0 then
+												box.fin.x = box.fin.x + 1 --Grow our box
+												box.filled = filled --Update our filled,unfilled status
+												box.unfilled = unfilled
+												finding = false --We're done with this iteration
+											elseif filled/(unfilled+filled) > minfill then --minfill is given to the function, minimum filled voxel in each box
+												box.fin.x = box.fin.x + 1 --Grow our box
+												box.filled = filled --Update our filled,unfilled status
+												box.unfilled = unfilled
+												finding = false --We're done with this iteration
+											end
+											--If it was less than minfill, remove from search list and let's check the others...
+											remaining.right = 0
+											tries = tries - 1
 										end
-										--If it was less than minfill, let's check the others...
-									end
 
-									if numVoxel.up == maxVoxel and finding then --Then let's try left first
-										local filled = box.filled + numVoxel.up --number filled voxels
-										local unfilled = box.unfilled + (box.fin.x-box.start.x+1)*(box.fin.z-box.start.z+1) - numVoxel.up --number unfilled
-										if unfilled == 0 then
-											box.fin.y = box.fin.y + 1 --Grow our box
-											box.filled = filled --Update our filled,unfilled status
-											box.unfilled = unfilled
-											finding = false --We're done with this iteration
-										elseif filled/(unfilled+filled) > minfill then --minfill is given to the function, minimum filled voxel in each box
-											box.fin.y = box.fin.y + 1 --Grow our box
-											box.filled = filled --Update our filled,unfilled status
-											box.unfilled = unfilled
-											finding = false --We're done with this iteration
+										if remaining.up == maxVoxel and finding then --Then let's try left first
+											local filled = box.filled + numVoxel.up --number filled voxels
+											local unfilled = box.unfilled + (box.fin.x-box.start.x+1)*(box.fin.z-box.start.z+1) - numVoxel.up --number unfilled
+											if unfilled == 0 then
+												box.fin.y = box.fin.y + 1 --Grow our box
+												box.filled = filled --Update our filled,unfilled status
+												box.unfilled = unfilled
+												finding = false --We're done with this iteration
+											elseif filled/(unfilled+filled) > minfill then --minfill is given to the function, minimum filled voxel in each box
+												box.fin.y = box.fin.y + 1 --Grow our box
+												box.filled = filled --Update our filled,unfilled status
+												box.unfilled = unfilled
+												finding = false --We're done with this iteration
+											end
+											--If it was less than minfill, remove from search list and let's check the others...
+											remaining.up = 0
+											tries = tries - 1
 										end
-										--If it was less than minfill, let's check the others...
-									end
 
-									if numVoxel.down == maxVoxel and finding then --Then let's try left first
-										local filled = box.filled + numVoxel.down --number filled voxels
-										local unfilled = box.unfilled + (box.fin.x-box.start.x+1)*(box.fin.z-box.start.z+1) - numVoxel.down --number unfilled
-										if unfilled == 0 then
-											box.start.y = box.start.y - 1 --Grow our box
-											box.filled = filled --Update our filled,unfilled status
-											box.unfilled = unfilled
-											finding = false --We're done with this iteration
-										elseif filled/(unfilled+filled) > minfill then --minfill is given to the function, minimum filled voxel in each box
-											box.start.y = box.start.y - 1 --Grow our box
-											box.filled = filled --Update our filled,unfilled status
-											box.unfilled = unfilled
-											finding = false --We're done with this iteration
+										if remaining.down == maxVoxel and finding then --Then let's try left first
+											local filled = box.filled + numVoxel.down --number filled voxels
+											local unfilled = box.unfilled + (box.fin.x-box.start.x+1)*(box.fin.z-box.start.z+1) - numVoxel.down --number unfilled
+											if unfilled == 0 then
+												box.start.y = box.start.y - 1 --Grow our box
+												box.filled = filled --Update our filled,unfilled status
+												box.unfilled = unfilled
+												finding = false --We're done with this iteration
+											elseif filled/(unfilled+filled) > minfill then --minfill is given to the function, minimum filled voxel in each box
+												box.start.y = box.start.y - 1 --Grow our box
+												box.filled = filled --Update our filled,unfilled status
+												box.unfilled = unfilled
+												finding = false --We're done with this iteration
+											end
+											--If it was less than minfill, remove from search list and let's check the others...
+											remaining.down = 0
+											tries = tries - 1
 										end
-										--If it was less than minfill, let's check the others...
-									end
 
-									if numVoxel.backward == maxVoxel and finding then --Then let's try left first
-										local filled = box.filled + numVoxel.backward --number filled voxels
-										local unfilled = box.unfilled + (box.fin.x-box.start.x+1)*(box.fin.y-box.start.y+1) - numVoxel.backward --number unfilled
-										if unfilled == 0 then
-											box.start.z = box.start.z - 1 --Grow our box
-											box.filled = filled --Update our filled,unfilled status
-											box.unfilled = unfilled
-											finding = false --We're done with this iteration
-										elseif filled/(unfilled+filled) > minfill then --minfill is given to the function, minimum filled voxel in each box
-											box.start.z = box.start.z - 1 --Grow our box
-											box.filled = filled --Update our filled,unfilled status
-											box.unfilled = unfilled
-											finding = false --We're done with this iteration
+										if remaining.backward == maxVoxel and finding then --Then let's try left first
+											local filled = box.filled + numVoxel.backward --number filled voxels
+											local unfilled = box.unfilled + (box.fin.x-box.start.x+1)*(box.fin.y-box.start.y+1) - numVoxel.backward --number unfilled
+											if unfilled == 0 then
+												box.start.z = box.start.z - 1 --Grow our box
+												box.filled = filled --Update our filled,unfilled status
+												box.unfilled = unfilled
+												finding = false --We're done with this iteration
+											elseif filled/(unfilled+filled) > minfill then --minfill is given to the function, minimum filled voxel in each box
+												box.start.z = box.start.z - 1 --Grow our box
+												box.filled = filled --Update our filled,unfilled status
+												box.unfilled = unfilled
+												finding = false --We're done with this iteration
+											end
+											--If it was less than minfill, remove from search list and let's check the others...
+											remaining.backward = 0
+											tries = tries - 1
 										end
-										--If it was less than minfill, let's check the others...
-									end
 
-									if numVoxel.forward == maxVoxel and finding then --Then let's try left first
-										local filled = box.filled + numVoxel.forward --number filled voxels
-										local unfilled = box.unfilled + (box.fin.x-box.start.x+1)*(box.fin.y-box.start.y+1) - numVoxel.forward --number unfilled
-										if unfilled == 0 then
-											box.fin.z = box.fin.z + 1 --Grow our box
-											box.filled = filled --Update our filled,unfilled status
-											box.unfilled = unfilled
-											finding = false --We're done with this iteration
-										elseif filled/(unfilled+filled) > minfill then --minfill is given to the function, minimum filled voxel in each box
-											box.fin.z = box.fin.z + 1 --Grow our box
-											box.fin.z = box.fin.z + 1 --Grow our box
-											box.filled = filled --Update our filled,unfilled status
-											box.unfilled = unfilled
-											finding = false --We're done with this iteration
+										if remaining.forward == maxVoxel and finding then --Then let's try left first
+											local filled = box.filled + numVoxel.forward --number filled voxels
+											local unfilled = box.unfilled + (box.fin.x-box.start.x+1)*(box.fin.y-box.start.y+1) - numVoxel.forward --number unfilled
+											if unfilled == 0 then
+												box.fin.z = box.fin.z + 1 --Grow our box
+												box.filled = filled --Update our filled,unfilled status
+												box.unfilled = unfilled
+												finding = false --We're done with this iteration
+											elseif filled/(unfilled+filled) > minfill then --minfill is given to the function, minimum filled voxel in each box
+												box.fin.z = box.fin.z + 1 --Grow our box
+												box.fin.z = box.fin.z + 1 --Grow our box
+												box.filled = filled --Update our filled,unfilled status
+												box.unfilled = unfilled
+												finding = false --We're done with this iteration
+											end
+											--If it was less than minfill, remove from search list and let's check the others...
+											remaining.forward = 0
+											tries = tries - 1
 										end
-										--If it was less than minfill, let's check the others...
-									end
+									end --End Tries While loop
 
 									--Okay so we went through all the directions, did we grow?
 									if finding then --Nope....
@@ -1148,7 +1162,7 @@ io.close(export)
 -- Export Minetest Readable data
 --
 
-local objfile = loader.deref(loader.load("models/spike.obj"))
+local objfile = loader.deref(loader.load("models/stub.obj"))
 
 local export = io.open("test.lua", "w+")
 
