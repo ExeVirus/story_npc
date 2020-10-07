@@ -1,10 +1,10 @@
 local loader = {}
 
 
-local FILE = "models/spike.obj"
-local SPACING = 0.14
-local MINFILL = 0.75
-local MINVOL = 0.0085
+local FILE = "models/example.obj"
+local SPACING = 0.09
+local MINFILL = 0.71
+local MINVOL = 0.005
 
 function loader.load(file)
 	assert(file_exists(file), "File not found: " .. file)
