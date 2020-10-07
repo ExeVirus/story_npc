@@ -1,7 +1,7 @@
 local loader = {}
 
 
-local FILE = "models/cube.obj"
+local FILE = "models/cube3.obj"
 local SPACING = 0.4
 local MINFILL = 0.75
 local MINVOL = 0.0085
@@ -458,11 +458,11 @@ function loader.breakup(grid, inspect)
 
 	--groups.size is the number of broken up boxes along each axis.
 	groups.size = {}
-	groups.size.x = math.floor((grid.dimensions.x / q)+0.99999)
-	groups.size.y = math.floor((grid.dimensions.y / q)+0.99999)
-	groups.size.z = math.floor((grid.dimensions.z / q)+0.99999)
-	print(inspect(groups))
+	groups.size.x = math.floor((grid.dimensions.x / q))+1
+	groups.size.y = math.floor((grid.dimensions.y / q))+1
+	groups.size.z = math.floor((grid.dimensions.z / q))+1
 	groups.grid = {}
+	print(inspect(groups.size))
 	if (groups.size.x + groups.size.y + groups.size.z ~= q) then
 		local index = 1
 		--First set up our various grids for being filled with voxels
@@ -480,6 +480,20 @@ function loader.breakup(grid, inspect)
 					groups.grid[index].offset.x = grid.offset.x + q * (i)
 					groups.grid[index].offset.y = grid.offset.y + q * (j)
 					groups.grid[index].offset.z = grid.offset.z + q * (k-1)
+					--calculate the starting position of the first point for this grid
+					groups.grid[index].position = {}
+					groups.grid[index].position.x = (math.floor((groups.grid[index].offset.x - groups.grid[1].offset.x) / grid.spacing)+1) * grid.spacing - (groups.grid[index].offset.x - groups.grid[1].offset.x)
+					groups.grid[index].position.y = (math.floor((groups.grid[index].offset.y - groups.grid[1].offset.y) / grid.spacing)+1) * grid.spacing - (groups.grid[index].offset.y - groups.grid[1].offset.y)
+					groups.grid[index].position.z = (math.floor((groups.grid[index].offset.z - groups.grid[1].offset.z) / grid.spacing)+1) * grid.spacing - (groups.grid[index].offset.z - groups.grid[1].offset.z)
+					if math.abs(groups.grid[index].position.x - grid.spacing) < 0.0001 then --0.0001 is epsilon because I do so much multiplication above ^^^
+						groups.grid[index].position.x = 0
+					end
+					if math.abs(groups.grid[index].position.y - grid.spacing) < 0.0001 then
+						groups.grid[index].position.y = 0
+					end
+					if math.abs(groups.grid[index].position.z - grid.spacing) < 0.0001 then
+						groups.grid[index].position.z = 0
+					end
 					--Calculate the dimensions, lessor of full expected length and remaining original grid dimension
 					groups.grid[index].dimensions = {}
 					groups.grid[index].dimensions.x = math.min(q, grid.dimensions.x - q * i)
@@ -497,9 +511,9 @@ function loader.breakup(grid, inspect)
 			end
 		end
 	--Iterate through all voxels linearly. Assign them to various grids, and give the grid's dimensions....
-		local xGridLength = math.floor(grid.dimensions.x/grid.spacing)+1
-		local yGridLength = math.floor(grid.dimensions.y/grid.spacing)+1
-		local zGridLength = math.floor(grid.dimensions.z/grid.spacing)+1
+		local xGridLength = math.floor(grid.dimensions.x/grid.spacing)
+		local yGridLength = math.floor(grid.dimensions.y/grid.spacing)
+		local zGridLength = math.floor(grid.dimensions.z/grid.spacing)
 
 		--Get the number of voxels in each subdivided q by q by q box
 		local voxelLength = {}
@@ -507,22 +521,21 @@ function loader.breakup(grid, inspect)
 		voxelLength.y = q / grid.spacing
 		voxelLength.z = q / grid.spacing
 
---~ 		print(grid.numberOfVoxels)
---~ 		print(xGridLength)
---~ 		print(yGridLength)
---~ 		print(zGridLength)
---~ 		print(inspect(voxelLength))
---~ 		io.stdin:read"*l"
-
+		print(grid.numberOfVoxels)
+		print(xGridLength)
+		print(yGridLength)
+		print(zGridLength)
+		print(inspect(voxelLength))
+		io.stdin:read"*l"
 
 		local xGrid, yGrid, ZGrid, ind
 		index = 1
 		for i = 0, xGridLength-1, 1 do
-			xGrid = math.floor(i / voxelLength.x) 	--These start at zero to account for the fact that the very first voxel is essentially at 0,
+			xGrid = math.floor(i * grid.spacing / q)
 			for j = 0, yGridLength-1, 1 do			--Meaning that we should start counting NOT including that very first voxel
-				yGrid = math.floor(j / voxelLength.y)
+				yGrid = math.floor(j * grid.spacing / q)
 				for k = 1, zGridLength, 1 do
-					zGrid = math.floor((k-1) / voxelLength.z) --Since k starts at 1, we must subtract 1 from k here to get the correct grid
+					zGrid = math.floor((k-1) * grid.spacing / q) --Since k starts at 1, we must subtract 1 from k here to get the correct grid
 					index = k + j * zGridLength + i * yGridLength * zGridLength --re-doing our array reference :)
 					--Now assign the voxel to the associated grid, hopefully the indexes line up correctly....
 					ind = 1 + zGrid + yGrid * groups.size.z + xGrid * groups.size.z * groups.size.y
@@ -556,10 +569,12 @@ function loader.breakup(grid, inspect)
 				end
 			end
 		end
-		print(inspect(groups))
-		io.stdin:read"*l"
 	else
 		groups.grid[1] = grid --Only 1 grid in -1.49->1.49.
+		groups.grid[1].position = {}
+		groups.grid[1].position.x = 0
+		groups.grid[1].position.y = 0
+		groups.grid[1].position.z = 0
 		groups.grid[1].numFilledVoxels = grid.numberOfFilledVoxels
 	end
 
@@ -588,9 +603,9 @@ function loader.view_subdivided_grid(grid,name)
 			for k = 1, zGridLength, 1 do
 				index = k + j * zGridLength + i * yGridLength * zGridLength--re-doing our array reference :)
 				if grid.voxels[index] == 1 then
-					xs = xs .. grid.offset.x + i * grid.spacing .. ", "
-					ys = ys .. grid.offset.y + j * grid.spacing .. ", "
-					zs = zs .. grid.offset.z + (k-1) * grid.spacing .. ", "
+					xs = xs .. grid.offset.x + grid.position.x + i * grid.spacing .. ", "
+					ys = ys .. grid.offset.y + grid.position.y + j * grid.spacing .. ", "
+					zs = zs .. grid.offset.z + grid.position.z + (k-1) * grid.spacing .. ", "
 				end
 			end
 		end
