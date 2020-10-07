@@ -1,8 +1,8 @@
 local loader = {}
 
 
-local FILE = "models/cube3.obj"
-local SPACING = 0.4
+local FILE = "models/spike.obj"
+local SPACING = 0.14
 local MINFILL = 0.75
 local MINVOL = 0.0085
 
@@ -310,7 +310,7 @@ function loader.voxelize(object, spacing)
 						--we are outside
 					else
 						grid.voxels[index] = 1
-						grid.voxel_verts[indexverts] = vector.new( i, j, k)
+						grid.voxel_verts[indexverts] = vector.new( grid.offset.x+i*spacing, grid.offset.y+j*spacing, grid.offset.z+k*spacing)
 						indexverts = indexverts + 1
 						--we are inside
 					end
@@ -463,7 +463,6 @@ function loader.breakup(grid, inspect)
 	groups.size.y = math.floor((grid.dimensions.y / q))+1
 	groups.size.z = math.floor((grid.dimensions.z / q))+1
 	groups.grid = {}
-	print(inspect(groups.size))
 	if (groups.size.x + groups.size.y + groups.size.z ~= q) then
 		local index = 1
 		--First set up our various grids for being filled with voxels
@@ -522,12 +521,12 @@ function loader.breakup(grid, inspect)
 		voxelLength.y = q / grid.spacing
 		voxelLength.z = q / grid.spacing
 
-		print(grid.numberOfVoxels)
-		print(xGridLength)
-		print(yGridLength)
-		print(zGridLength)
-		print(inspect(voxelLength))
-		io.stdin:read"*l"
+--~ 		print(grid.numberOfVoxels)
+--~ 		print(xGridLength)
+--~ 		print(yGridLength)
+--~ 		print(zGridLength)
+--~ 		print(inspect(voxelLength))
+--~ 		io.stdin:read"*l"
 
 		local xGrid, yGrid, ZGrid, ind
 		index = 1
@@ -743,7 +742,10 @@ function loader.boxify(groups, minfill, minsize, inspect)
 				boxGroups[grindex] = {}
 				boxGroups[grindex].numBoxes = 0 --initially
 				boxGroups[grindex].boxes = {}
-				boxGroups[grindex].offset = groups.grid[grindex].offset
+				boxGroups[grindex].offset = {}
+				boxGroups[grindex].offset.x = groups.grid[grindex].offset.x + groups.grid[grindex].position.x
+				boxGroups[grindex].offset.y = groups.grid[grindex].offset.y + groups.grid[grindex].position.y
+				boxGroups[grindex].offset.z = groups.grid[grindex].offset.z + groups.grid[grindex].position.z
 
 
 				-----------Now we go through the grid algorithm--------------------
@@ -1082,11 +1084,11 @@ function loader.view_boxes(box,offset,spacing,name)
 	--strings for x's, y's, z's :)
 	local start = box.start
 	local fin = box.fin
-	start.x = offset.x + start.x * spacing
-	start.y = offset.y + start.y * spacing
+	start.x = offset.x + (start.x-1) * spacing
+	start.y = offset.y + (start.y-1) * spacing
 	start.z = offset.z + (start.z-1) * spacing
-	fin.x = offset.x + fin.x * spacing
-	fin.y = offset.y + fin.y * spacing
+	fin.x = offset.x + (fin.x-1) * spacing
+	fin.y = offset.y + (fin.y-1) * spacing
 	fin.z = offset.z + (fin.z-1) * spacing
 
 	local xs = "x: ["
