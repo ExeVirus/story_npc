@@ -1,10 +1,10 @@
 local loader = {}
 
 
-local FILE = "models/example.obj"
-local SPACING = 0.1
-local MINFILL = 0.7
-local MINVOL = 0.01
+local FILE = "models/cube.obj"
+local SPACING = 0.4
+local MINFILL = 0.75
+local MINVOL = 0.0085
 
 function loader.load(file)
 	assert(file_exists(file), "File not found: " .. file)
@@ -461,8 +461,9 @@ function loader.breakup(grid, inspect)
 	groups.size.x = math.floor((grid.dimensions.x / q)+0.99999)
 	groups.size.y = math.floor((grid.dimensions.y / q)+0.99999)
 	groups.size.z = math.floor((grid.dimensions.z / q)+0.99999)
+	print(inspect(groups))
 	groups.grid = {}
-	if(groups.size.x + groups.size.y + groups.size.z ~= q) then
+	if (groups.size.x + groups.size.y + groups.size.z ~= q) then
 		local index = 1
 		--First set up our various grids for being filled with voxels
 		for i = 0, groups.size.x-1, 1 do
@@ -484,36 +485,79 @@ function loader.breakup(grid, inspect)
 					groups.grid[index].dimensions.x = math.min(q, grid.dimensions.x - q * i)
 					groups.grid[index].dimensions.y = math.min(q, grid.dimensions.y - q * j)
 					groups.grid[index].dimensions.z = math.min(q, grid.dimensions.z - q * (k-1))
+					--Set the gridLengths:
+					groups.grid[index].lengths = {}
+					groups.grid[index].lengths.x = 0
+					groups.grid[index].lengths.y = 0
+					groups.grid[index].lengths.z = 0
+					--Set the grid start and end
+					groups.grid[index].start = {}
+					groups.grid[index].fin = {}
 				end
 			end
 		end
 	--Iterate through all voxels linearly. Assign them to various grids, and give the grid's dimensions....
-		local xGridLength = math.floor(grid.dimensions.x/grid.spacing+0.9999999999)
-		local yGridLength = math.floor(grid.dimensions.y/grid.spacing+0.9999999999)
-		local zGridLength = math.floor(grid.dimensions.z/grid.spacing+0.9999999999)
+		local xGridLength = math.floor(grid.dimensions.x/grid.spacing)+1
+		local yGridLength = math.floor(grid.dimensions.y/grid.spacing)+1
+		local zGridLength = math.floor(grid.dimensions.z/grid.spacing)+1
 
 		--Get the number of voxels in each subdivided q by q by q box
 		local voxelLength = {}
 		voxelLength.x = q / grid.spacing
 		voxelLength.y = q / grid.spacing
 		voxelLength.z = q / grid.spacing
+
+--~ 		print(grid.numberOfVoxels)
+--~ 		print(xGridLength)
+--~ 		print(yGridLength)
+--~ 		print(zGridLength)
+--~ 		print(inspect(voxelLength))
+--~ 		io.stdin:read"*l"
+
+
 		local xGrid, yGrid, ZGrid, ind
 		index = 1
 		for i = 0, xGridLength-1, 1 do
-			xGrid = math.floor(i / voxelLength.x)
-			for j = 0, yGridLength-1, 1 do
+			xGrid = math.floor(i / voxelLength.x) 	--These start at zero to account for the fact that the very first voxel is essentially at 0,
+			for j = 0, yGridLength-1, 1 do			--Meaning that we should start counting NOT including that very first voxel
 				yGrid = math.floor(j / voxelLength.y)
 				for k = 1, zGridLength, 1 do
-					zGrid = math.floor(k / voxelLength.z)
+					zGrid = math.floor((k-1) / voxelLength.z) --Since k starts at 1, we must subtract 1 from k here to get the correct grid
 					index = k + j * zGridLength + i * yGridLength * zGridLength --re-doing our array reference :)
 					--Now assign the voxel to the associated grid, hopefully the indexes line up correctly....
 					ind = 1 + zGrid + yGrid * groups.size.z + xGrid * groups.size.z * groups.size.y
+					if groups.grid[ind].numberOfVoxels == 0 then
+						groups.grid[ind].start.x = i+1
+						groups.grid[ind].start.y = j+1
+						groups.grid[ind].start.z = k
+						groups.grid[ind].fin.x = i+1
+						groups.grid[ind].fin.y = j+1
+						groups.grid[ind].fin.z = k
+					end
 					groups.grid[ind].voxels[groups.grid[ind].numberOfVoxels+1] = grid.voxels[index]
 					groups.grid[ind].numberOfVoxels = 1 + groups.grid[ind].numberOfVoxels
 					groups.grid[ind].numFilledVoxels = grid.voxels[index] + groups.grid[ind].numFilledVoxels
+
+					--Now updated ends of this grid
+					groups.grid[ind].fin.x = math.max(i+1, groups.grid[ind].fin.x)
+					groups.grid[ind].fin.y = math.max(j+1, groups.grid[ind].fin.y)
+					groups.grid[ind].fin.z = math.max(k, groups.grid[ind].fin.z)
 				end
 			end
 		end
+		--Now update the resulting grid axis lengths
+		for i = 0, groups.size.x-1, 1 do
+			for j = 0, groups.size.y-1, 1 do
+				for k = 1, groups.size.z, 1 do
+					index = k+j*groups.size.z+i*groups.size.z*groups.size.y
+					groups.grid[index].lengths.x = groups.grid[index].fin.x - groups.grid[index].start.x + 1
+					groups.grid[index].lengths.y = groups.grid[index].fin.y - groups.grid[index].start.y + 1
+					groups.grid[index].lengths.z = groups.grid[index].fin.z - groups.grid[index].start.z + 1
+				end
+			end
+		end
+		print(inspect(groups))
+		io.stdin:read"*l"
 	else
 		groups.grid[1] = grid --Only 1 grid in -1.49->1.49.
 		groups.grid[1].numFilledVoxels = grid.numberOfFilledVoxels
@@ -522,7 +566,7 @@ function loader.breakup(grid, inspect)
 	return groups
 end
 
-local groups = loader.breakup(grid)
+local groups = loader.breakup(grid, inspect)
 
 --
 --Function view_subdivided_grid(grid,name) exports a single scatter plot of a broken up grid from break_Up
@@ -535,9 +579,10 @@ function loader.view_subdivided_grid(grid,name)
 	local ys = "y: ["
 	local zs = "z: ["
 
-	local xGridLength = math.floor(grid.dimensions.x/grid.spacing + 0.99999999)
-	local yGridLength = math.floor(grid.dimensions.y/grid.spacing + 0.99999999)
-	local zGridLength = math.floor(grid.dimensions.z/grid.spacing + 0.99999999)
+	local xGridLength = grid.lengths.x
+	local yGridLength = grid.lengths.y
+	local zGridLength = grid.lengths.z
+
 	for i = 0, xGridLength-1, 1 do
 		for j = 0, yGridLength-1, 1 do
 			for k = 1, zGridLength, 1 do
@@ -675,6 +720,9 @@ function loader.boxify(groups, minfill, minsize, inspect)
 		for b = 0, groups.size.y-1, 1 do
 			for c = 1, groups.size.z, 1 do
 				local grindex = c+b*groups.size.z+a*groups.size.z*groups.size.y
+
+				print(groups.grid[grindex].numberOfVoxels)
+
 				--Instantiate a new object to store the resulting boxes
 				boxGroups[grindex] = {}
 				boxGroups[grindex].numBoxes = 0 --initially
@@ -686,9 +734,9 @@ function loader.boxify(groups, minfill, minsize, inspect)
 
 				--First we get the number of voxels along each axis for the grid
 				local gridLengths = {}
-				gridLengths.x = math.floor(groups.grid[grindex].dimensions.x / groups.grid[grindex].spacing + 0.99999999)
-				gridLengths.y = math.floor(groups.grid[grindex].dimensions.y / groups.grid[grindex].spacing + 0.99999999)
-				gridLengths.z = math.floor(groups.grid[grindex].dimensions.z / groups.grid[grindex].spacing + 0.99999999)
+				gridLengths.x = groups.grid[grindex].lengths.x
+				gridLengths.y = groups.grid[grindex].lengths.y
+				gridLengths.z = groups.grid[grindex].lengths.z
 
 				--Now we loop through all of the voxels until there are no voxels left after the algorithm eats them
 				--Every time we build ourselves a box, we will remove those voxels, we also will reset our search loop back to the
@@ -716,11 +764,11 @@ function loader.boxify(groups, minfill, minsize, inspect)
 								local box = {}
 								box.start = {}
 								box.fin = {}
-								box.start.x = i
-								box.start.y = j
+								box.start.x = i+1 --start at 1
+								box.start.y = j+1
 								box.start.z = k
-								box.fin.x = i
-								box.fin.y = j
+								box.fin.x = i+1
+								box.fin.y = j+1
 								box.fin.z = k
 								box.filled = 1 --number of filled and unfilled voxels in box
 								box.unfilled = 0
@@ -743,33 +791,43 @@ function loader.boxify(groups, minfill, minsize, inspect)
 										for up = box.start.y, box.fin.y, 1 do
 											for forward = box.start.z, box.fin.z, 1 do
 												--Add the current voxel to the number of voxels to the left (1 = filled, 0 = empty)
-												numVoxel.left = numVoxel.left + groups.grid[grindex].voxels[forward + up * gridLengths.z + (box.start.x - 1) * gridLengths.z * gridLengths.y]
+												numVoxel.left = numVoxel.left + groups.grid[grindex].voxels[forward + (up-1) * gridLengths.z + (box.start.x - 2) * gridLengths.z * gridLengths.y]
 											end
 										end
 									end
 
 									--Get number of Voxels to the right
-									if box.fin.x + 1 == gridLengths.x then --Are we on the edge of our grid?
+									if box.fin.x == gridLengths.x then --Are we on the edge of our grid?
 										numVoxel.right = 0 --Then there's nothing to the right
 									else --we aren't so....
 										--We need to check what voxels are there
 										for up = box.start.y, box.fin.y, 1 do
 											for forward = box.start.z, box.fin.z, 1 do
 												--Add the current voxel to the number of voxels to the right (1 = filled, 0 = empty)
-												numVoxel.right = numVoxel.right + groups.grid[grindex].voxels[forward + up * gridLengths.z + (box.fin.x + 1) * gridLengths.z * gridLengths.y]
+												if groups.grid[grindex].numFilledVoxels == -10 then
+													print(grindex)
+													print(inspect(groups.grid[grindex].dimensions))
+													print(inspect(gridLengths))
+													print(inspect(box))
+													print("foward: " .. forward .. " up: " .. up .. " box.fin.x: " .. box.fin.x)
+													print(forward + (up-1) * gridLengths.z + (box.fin.x) * gridLengths.z * gridLengths.y)
+													print(groups.grid[grindex].numberOfVoxels)
+													io.stdin:read"*l"
+												end
+												numVoxel.right = numVoxel.right + groups.grid[grindex].voxels[forward + (up-1) * gridLengths.z + (box.fin.x) * gridLengths.z * gridLengths.y]
 											end
 										end
 									end
 
 									--Get number of Voxels above
-									if box.fin.y + 1 == gridLengths.y then --Are we on the edge of our grid?
+									if box.fin.y == gridLengths.y then --Are we on the edge of our grid?
 										numVoxel.up = 0 --Then there's nothing to the right
 									else --we aren't so....
 										--We need to check what voxels are there
 										for right = box.start.x, box.fin.x, 1 do
 											for forward = box.start.z, box.fin.z, 1 do
 												--Add the current voxel to the number of voxels above (1 = filled, 0 = empty)
-												numVoxel.up = numVoxel.up + groups.grid[grindex].voxels[forward + (box.fin.y + 1) * gridLengths.z + right * gridLengths.z * gridLengths.y]
+												numVoxel.up = numVoxel.up + groups.grid[grindex].voxels[forward + (box.fin.y) * gridLengths.z + (right-1) * gridLengths.z * gridLengths.y]
 											end
 										end
 									end
@@ -782,20 +840,20 @@ function loader.boxify(groups, minfill, minsize, inspect)
 										for right = box.start.x, box.fin.x, 1 do
 											for forward = box.start.z, box.fin.z, 1 do
 												--Add the current voxel to the number of voxels above (1 = filled, 0 = empty)
-												numVoxel.down = numVoxel.down + groups.grid[grindex].voxels[forward + (box.start.y - 1) * gridLengths.z + right * gridLengths.z * gridLengths.y]
+												numVoxel.down = numVoxel.down + groups.grid[grindex].voxels[forward + (box.start.y - 2) * gridLengths.z + (right-1) * gridLengths.z * gridLengths.y]
 											end
 										end
 									end
 
 									--Get number of Voxels forward
-									if box.fin.z + 1 == gridLengths.z then --Are we on the edge of our grid?
+									if box.fin.z == gridLengths.z then --Are we on the edge of our grid?
 										numVoxel.forward = 0 --Then there's nothing to the right
 									else --we aren't so....
 										--We need to check what voxels are there
 										for right = box.start.x, box.fin.x, 1 do
 											for up = box.start.y, box.fin.y, 1 do
 												--Add the current voxel to the number of voxels above (1 = filled, 0 = empty)
-												numVoxel.forward = numVoxel.forward + groups.grid[grindex].voxels[box.fin.z + 1 + up * gridLengths.z + right * gridLengths.z * gridLengths.y]
+												numVoxel.forward = numVoxel.forward + groups.grid[grindex].voxels[box.fin.z + 1 + (up-1) * gridLengths.z + (right-1) * gridLengths.z * gridLengths.y]
 											end
 										end
 									end
@@ -808,7 +866,7 @@ function loader.boxify(groups, minfill, minsize, inspect)
 										for right = box.start.x, box.fin.x, 1 do
 											for up = box.start.y, box.fin.y, 1 do
 												--Add the current voxel to the number of voxels above (1 = filled, 0 = empty)
-												numVoxel.backward = numVoxel.backward + groups.grid[grindex].voxels[box.start.z - 1 + up * gridLengths.z + right * gridLengths.z * gridLengths.y]
+												numVoxel.backward = numVoxel.backward + groups.grid[grindex].voxels[box.start.z - 1 + (up-1) * gridLengths.z + (right-1) * gridLengths.z * gridLengths.y]
 											end
 										end
 									end
@@ -953,7 +1011,7 @@ function loader.boxify(groups, minfill, minsize, inspect)
 											for right = box.start.x, box.fin.x, 1 do
 												for up = box.start.y, box.fin.y, 1 do
 													for forward = box.start.z, box.fin.z, 1 do
-														groups.grid[grindex].voxels[forward + up * gridLengths.z + right * gridLengths.y * gridLengths.z] = 0
+														groups.grid[grindex].voxels[forward + (up-1) * gridLengths.z + (right-1) * gridLengths.y * gridLengths.z] = 0
 													end
 												end
 											end
