@@ -690,16 +690,31 @@ function loader.boxify(groups, minfill, minsize, inspect)
 
 				--Note that instead of merely starting at 0 and counting up, we will instead be counting from a random point
 				--in the middle of each axis, helping to alleviate issues of skew in the boxing algo.
-				local i = 0
-				local j = 0
-				local k = 1
+
+				local i = math.random(0, gridLengths.x-1)
+				local j = math.random(0, gridLengths.y-1)
+				local k = math.random(1, gridLengths.z)
+
+				local reset = {} --Used for reseting inner loops when not finding voxels. Otherwise when we "start over" these get changed.
+				reset.i = i
+				reset.j = j
+				reset.k = j
 				local target = {}
-				target.i = gridLengths.x - i
-				target.j = gridLengths.y - j
-				target.k = gridLengths.z - k
-				while (i < gridLengths.x) do
-					while (j < gridLengths.y) do
-						while (k < gridLengths.z+1) do
+				target.i = i-1
+				target.j = j-1
+				target.k = k-1 --to account for always being at least 1.
+				if target.i == -1 then
+					target.i = gridLengths.x
+				end
+				if target.j == -1 then
+					target.j = gridLengths.y
+				end
+				if target.k == 0 then
+					target.k = gridLengths.z+1
+				end
+				while (i ~= target.i) do
+					while (j ~= target.j) do
+						while (k ~= target.k) do
 							voxeldex = k + j * gridLengths.z + i * gridLengths.z * gridLengths.y
 
 --DELETEME LATER
@@ -968,19 +983,38 @@ function loader.boxify(groups, minfill, minsize, inspect)
 										end
 									end
 								end --End algo
-								--Now reset the i,j,k back to the beginning
-								i = 0
-								j = 0
-								k = 1
+								--Now set the i,j,k to random number
+								local i = math.random(0, gridLengths.x-1)
+								local j = math.random(0, gridLengths.y-1)
+								local k = math.random(1, gridLengths.z)
+								target.i = i-1
+								target.j = j-1
+								target.k = k-1 --to account for always being at least 1.
+								if target.i == -1 then
+									target.i = gridLengths.x-1
+								end
+								if target.j == -1 then
+									target.j = gridLengths.y-1
+								end
+								if target.k == 0 then
+									target.k = gridLengths.z
+								end
+
+								reset.i = i
+								reset.j = j
+								reset.k = k
 								--We only leave when there are no voxels left...
 							end
-							k = k + 1
+							k = (k + 1)
+							if k > gridLengths.z + 1 then
+								k = 1
+							end
 						end
-						k = 1
-						j = j + 1
+						k = reset.k
+						j = (j + 1) % gridLengths.y
 					end
-					j = 0
-					i = i + 1
+					j = reset.j
+					i = (i + 1) % gridLengths.x
 				end
 				-----------End Individual Grid Algorithm----------------------
 			end
@@ -989,7 +1023,7 @@ function loader.boxify(groups, minfill, minsize, inspect)
 	return boxGroups
 end
 
-local boxGroups = loader.boxify(groups, 0.8, 0.05, inspect)
+local boxGroups = loader.boxify(groups, 0.7, 0.02, inspect)
 
 
 
