@@ -51,9 +51,6 @@ end
 function loader.parse(object)
 	local obj = {
 		v	= {}, -- List of vertices - x, y, z, [w]=1.0
---~ 		vt	= {}, -- Texture coordinates - u, v, [w]=0
---~ 		vn	= {}, -- Normals - x, y, z
---~ 		vp	= {}, -- Parameter space vertices - u, [v], [w]
 		f	= {}, -- Faces
 	}
 
@@ -68,27 +65,6 @@ function loader.parse(object)
 --~ 				w = tonumber(l[5]) or 1.0
 			}
 			table.insert(obj.v, v)
---~ 		elseif l[1] == "vt" then
---~ 			local vt = {
---~ 				u = tonumber(l[2]),
---~ 				v = tonumber(l[3]),
---~ 				w = tonumber(l[4]) or 0
---~ 			}
---~ 			table.insert(obj.vt, vt)
---~ 		elseif l[1] == "vn" then
---~ 			local vn = {
---~ 				x = tonumber(l[2]),
---~ 				y = tonumber(l[3]),
---~ 				z = tonumber(l[4]),
---~ 			}
---~ 			table.insert(obj.vn, vn)
---~ 		elseif l[1] == "vp" then
---~ 			local vp = {
---~ 				u = tonumber(l[2]),
---~ 				v = tonumber(l[3]),
---~ 				w = tonumber(l[4]),
---~ 			}
---~ 			table.insert(obj.vp, vp)
 		elseif l[1] == "f" then
 			local f = {}
 
@@ -119,7 +95,7 @@ end
 
 
 
-local objfile = loader.load("models/glove.obj")
+local objfile = loader.load("models/spike.obj")
 
 local export = io.open("test.html", "w+")
 
@@ -711,9 +687,16 @@ function loader.boxify(groups, minfill, minsize, inspect)
 				--Now we loop through all of the voxels until there are no voxels left after the algorithm eats them
 				--Every time we build ourselves a box, we will remove those voxels, we also will reset our search loop back to the
 				--beginning so that we research the grid, until finished.
+
+				--Note that instead of merely starting at 0 and counting up, we will instead be counting from a random point
+				--in the middle of each axis, helping to alleviate issues of skew in the boxing algo.
 				local i = 0
 				local j = 0
 				local k = 1
+				local target = {}
+				target.i = gridLengths.x - i
+				target.j = gridLengths.y - j
+				target.k = gridLengths.z - k
 				while (i < gridLengths.x) do
 					while (j < gridLengths.y) do
 						while (k < gridLengths.z+1) do
@@ -829,11 +812,10 @@ function loader.boxify(groups, minfill, minsize, inspect)
 									local tries = 6
 									while tries > 0 and finding do
 										local maxVoxel = math.max(remaining.left, remaining.right, remaining.up, remaining.down, remaining.forward, remaining.backward)
-
---~ 									print("MaxVoxel = "..maxVoxel)
---~ 									print("NumVoxel = "..inspect(numVoxel))
---~ 									print(inspect(box))
---~ 									io.stdin:read'*l'
+										if maxVoxel == 0 and finding then
+											maxVoxel = -2
+											tries = 0
+										end
 
 										if remaining.left == maxVoxel and finding then --Then let's try left first
 											local filled = box.filled + numVoxel.left --number filled voxels
@@ -850,7 +832,7 @@ function loader.boxify(groups, minfill, minsize, inspect)
 												finding = false --We're done with this iteration
 											end
 											--If it was less than minfill, remove from search list and let's check the others...
-											remaining.left = 0
+											remaining.left = -1
 											tries = tries - 1
 										end
 
@@ -869,7 +851,7 @@ function loader.boxify(groups, minfill, minsize, inspect)
 												finding = false --We're done with this iteration
 											end
 											--If it was less than minfill, remove from search list and let's check the others...
-											remaining.right = 0
+											remaining.right = -1
 											tries = tries - 1
 										end
 
@@ -888,7 +870,7 @@ function loader.boxify(groups, minfill, minsize, inspect)
 												finding = false --We're done with this iteration
 											end
 											--If it was less than minfill, remove from search list and let's check the others...
-											remaining.up = 0
+											remaining.up = -1
 											tries = tries - 1
 										end
 
@@ -907,7 +889,7 @@ function loader.boxify(groups, minfill, minsize, inspect)
 												finding = false --We're done with this iteration
 											end
 											--If it was less than minfill, remove from search list and let's check the others...
-											remaining.down = 0
+											remaining.down = -1
 											tries = tries - 1
 										end
 
@@ -926,7 +908,7 @@ function loader.boxify(groups, minfill, minsize, inspect)
 												finding = false --We're done with this iteration
 											end
 											--If it was less than minfill, remove from search list and let's check the others...
-											remaining.backward = 0
+											remaining.backward = -1
 											tries = tries - 1
 										end
 
@@ -946,7 +928,7 @@ function loader.boxify(groups, minfill, minsize, inspect)
 												finding = false --We're done with this iteration
 											end
 											--If it was less than minfill, remove from search list and let's check the others...
-											remaining.forward = 0
+											remaining.forward = -1
 											tries = tries - 1
 										end
 									end --End Tries While loop
@@ -958,7 +940,8 @@ function loader.boxify(groups, minfill, minsize, inspect)
 										if voxelVolume * groups.grid[grindex].spacing*groups.grid[grindex].spacing*groups.grid[grindex].spacing < minsize then
 											--unreasonablly small, delete the respective starting voxel
 											groups.grid[grindex].voxels[voxeldex] = 0
-											groups.grid[grindex].numberOfVoxels = groups.grid[grindex].numberOfVoxels - 1
+											groups.grid[grindex].numFilledVoxels = groups.grid[grindex].numFilledVoxels - 1
+											print("Voxels Remaining: " .. groups.grid[grindex].numFilledVoxels)
 										else --Hey we have a good box! let's remove the voxels enclosed and save it
 											--delete the voxels
 											for right = box.start.x, box.fin.x, 1 do
@@ -1006,7 +989,7 @@ function loader.boxify(groups, minfill, minsize, inspect)
 	return boxGroups
 end
 
-local boxGroups = loader.boxify(groups, 0.9, 0.015, inspect)
+local boxGroups = loader.boxify(groups, 0.8, 0.05, inspect)
 
 
 
@@ -1021,10 +1004,10 @@ function loader.view_boxes(box,offset,spacing,name)
 	local fin = box.fin
 	start.x = offset.x + start.x * spacing
 	start.y = offset.y + start.y * spacing
-	start.z = offset.z + start.z * spacing
+	start.z = offset.z + (start.z-1) * spacing
 	fin.x = offset.x + fin.x * spacing
 	fin.y = offset.y + fin.y * spacing
-	fin.z = offset.z + fin.z * spacing
+	fin.z = offset.z + (fin.z-1) * spacing
 
 	local xs = "x: ["
 	local ys = "y: ["
