@@ -295,14 +295,15 @@ function loader.voxelize(object, spacing)
 	local indexverts = 1
 	grid.spacing = spacing
 	if(spacing < grid.dimensions.x and spacing < grid.dimensions.y and spacing < grid.dimensions.z) then
-		for i = grid.offset.x, grid.offset.x+grid.dimensions.x, spacing do
-			for j = grid.offset.y, grid.offset.y+grid.dimensions.y, spacing do
-				for k = grid.offset.z, grid.offset.z+grid.dimensions.z, spacing do
+
+		for i = 0, grid.dimensions.x/spacing, 1 do
+			for j = 0, grid.dimensions.y/spacing, 1 do
+				for k = 0, grid.dimensions.z/spacing, 1 do
 					--Now to check each point and see if it is insize or outside our object
 					-- (i,j,k) = point
 					local count = 0
 					for q, v in ipairs(object) do
-						count = count + raycast(i,j,k,v)
+						count = count + raycast(grid.offset.x+i*spacing,grid.offset.y+j*spacing,grid.offset.z+k*spacing,v)
 					end
 					if ( count % 2 == 0) then
 						grid.voxels[index] = 0
@@ -316,7 +317,7 @@ function loader.voxelize(object, spacing)
 					index = index + 1
 				end
 			end
-			print( (i-grid.offset.x)/spacing / (grid.dimensions.x / spacing) * 100 .. "% complete")
+			print( i / (grid.dimensions.x / spacing) * 100 .. "% complete")
 		end
 	end
 	grid.numberOfVoxels = index - 1
@@ -511,9 +512,9 @@ function loader.breakup(grid, inspect)
 			end
 		end
 	--Iterate through all voxels linearly. Assign them to various grids, and give the grid's dimensions....
-		local xGridLength = math.floor(grid.dimensions.x/grid.spacing)
-		local yGridLength = math.floor(grid.dimensions.y/grid.spacing)
-		local zGridLength = math.floor(grid.dimensions.z/grid.spacing)
+		local xGridLength = math.floor(grid.dimensions.x/grid.spacing)+1
+		local yGridLength = math.floor(grid.dimensions.y/grid.spacing)+1
+		local zGridLength = math.floor(grid.dimensions.z/grid.spacing)+1
 
 		--Get the number of voxels in each subdivided q by q by q box
 		local voxelLength = {}
