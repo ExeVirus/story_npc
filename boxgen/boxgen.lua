@@ -1,5 +1,11 @@
 local loader = {}
 
+
+local FILE = "models/example.obj"
+local SPACING = 0.1
+local MINFILL = 0.7
+local MINVOL = 0.01
+
 function loader.load(file)
 	assert(file_exists(file), "File not found: " .. file)
 
@@ -95,7 +101,7 @@ end
 
 
 
-local objfile = loader.load("models/spike.obj")
+local objfile = loader.load(FILE)
 
 local export = io.open("test.html", "w+")
 
@@ -321,7 +327,7 @@ end
 
 print("starting voxelize\n")
 --loader.voxelize(loader.deref(objfile),0.1)
-local grid = loader.voxelize(loader.deref(objfile),0.1)
+local grid = loader.voxelize(loader.deref(objfile),SPACING)
 --print(inspect(grid))
 print("Finished voxelize\n")
 
@@ -989,7 +995,7 @@ function loader.boxify(groups, minfill, minsize, inspect)
 	return boxGroups
 end
 
-local boxGroups = loader.boxify(groups, 0.8, 0.05, inspect)
+local boxGroups = loader.boxify(groups, MINFILL, MINVOL, inspect)
 
 
 
