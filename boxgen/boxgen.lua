@@ -3,7 +3,7 @@ local loader = {}
 
 local FILE = "models/pillar_45.obj"
 local SPACING = 0.14
-local MINFILL = 0.7
+local MINFILL = 0.65
 local MINVOL = 0.005
 
 function loader.load(file)
