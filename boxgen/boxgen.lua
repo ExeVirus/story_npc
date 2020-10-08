@@ -1,9 +1,9 @@
 local loader = {}
 
 
-local FILE = "models/example.obj"
-local SPACING = 0.09
-local MINFILL = 0.71
+local FILE = "models/pillar_45.obj"
+local SPACING = 0.14
+local MINFILL = 0.7
 local MINVOL = 0.005
 
 function loader.load(file)
@@ -575,6 +575,10 @@ function loader.breakup(grid, inspect)
 		groups.grid[1].position.x = 0
 		groups.grid[1].position.y = 0
 		groups.grid[1].position.z = 0
+		groups.grid[1].lengths = {}
+		groups.grid[1].lengths.x = math.floor(grid.dimensions.x/grid.spacing)+1
+		groups.grid[1].lengths.y = math.floor(grid.dimensions.y/grid.spacing)+1
+		groups.grid[1].lengths.z = math.floor(grid.dimensions.z/grid.spacing)+1
 		groups.grid[1].numFilledVoxels = grid.numberOfFilledVoxels
 	end
 
