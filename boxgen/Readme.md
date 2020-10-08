@@ -9,6 +9,7 @@
 
 ## To-Be-Completed
 
+0. Fix Autoscaling grid issue for skew.
 1. Minetest Collision box output formated file export(.box)
 2. Code cleanup and encapsulation (i.e. break up functions from calling lua file)
 3. Minetest Supporting Mod with new register .box node function

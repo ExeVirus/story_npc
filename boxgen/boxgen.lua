@@ -1,10 +1,10 @@
 local loader = {}
 
 
-local FILE = "models/pillar_45.obj"
-local SPACING = 0.14
-local MINFILL = 0.65
-local MINVOL = 0.005
+local FILE = "models/f117.obj"
+local SPACING = 0.1
+local MINFILL = 0.6
+local MINVOL = 0.006
 
 function loader.load(file)
 	assert(file_exists(file), "File not found: " .. file)
@@ -563,9 +563,11 @@ function loader.breakup(grid, inspect)
 			for j = 0, groups.size.y-1, 1 do
 				for k = 1, groups.size.z, 1 do
 					index = k+j*groups.size.z+i*groups.size.z*groups.size.y
-					groups.grid[index].lengths.x = groups.grid[index].fin.x - groups.grid[index].start.x + 1
-					groups.grid[index].lengths.y = groups.grid[index].fin.y - groups.grid[index].start.y + 1
-					groups.grid[index].lengths.z = groups.grid[index].fin.z - groups.grid[index].start.z + 1
+					if(groups.grid[index].numberOfVoxels ~= 0) then
+						groups.grid[index].lengths.x = groups.grid[index].fin.x - groups.grid[index].start.x + 1
+						groups.grid[index].lengths.y = groups.grid[index].fin.y - groups.grid[index].start.y + 1
+						groups.grid[index].lengths.z = groups.grid[index].fin.z - groups.grid[index].start.z + 1
+					end
 				end
 			end
 		end
@@ -828,7 +830,6 @@ function loader.boxify(groups, minfill, minsize, inspect)
 												--Add the current voxel to the number of voxels to the right (1 = filled, 0 = empty)
 												if groups.grid[grindex].numFilledVoxels == -10 then
 													print(grindex)
-													print(inspect(groups.grid[grindex].dimensions))
 													print(inspect(gridLengths))
 													print(inspect(box))
 													print("foward: " .. forward .. " up: " .. up .. " box.fin.x: " .. box.fin.x)
