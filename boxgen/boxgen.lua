@@ -1,10 +1,10 @@
 local loader = {}
 
 
-local FILE = "models/f117.obj"
-local SPACING = 0.1
-local MINFILL = 0.6
-local MINVOL = 0.006
+local FILE = "models/spike.obj"
+local SPACING = 0.14
+local MINFILL = 0.76
+local MINVOL = 0.07
 
 function loader.load(file)
 	assert(file_exists(file), "File not found: " .. file)
@@ -439,6 +439,19 @@ var layout = {
 	x: 1,
 	y: 0.5,
    },
+	scene:{
+		aspectmode: "manual",
+        aspectratio: {
+            x: 1, y: 1, z: 1,
+        },         ]])
+
+--Find the largest dimension:
+local MaxDim = math.max(grid.dimensions.x, grid.dimensions.y, grid.dimensions.z)
+io.write("xaxis: {nticks: 10,range: [" .. grid.offset.x .. ", " .. grid.offset.x+MaxDim .. "],},")
+io.write("yaxis: {nticks: 10,range: [" .. grid.offset.y .. ", " .. grid.offset.y+MaxDim .. "],},")
+io.write("zaxis: {nticks: 10,range: [" .. grid.offset.z .. ", " .. grid.offset.z+MaxDim .. "],},")
+io.write([[
+},
 };
 
 Plotly.newPlot('myDiv', data, layout);
@@ -718,6 +731,19 @@ var layout = {
 	x: 1,
 	y: 0.5,
    },
+   scene:{
+		aspectmode: "manual",
+        aspectratio: {
+            x: 1, y: 1, z: 1,
+        },         ]])
+
+--Find the largest dimension:
+local MaxDim = math.max(grid.dimensions.x, grid.dimensions.y, grid.dimensions.z)
+io.write("xaxis: {nticks: 10,range: [" .. grid.offset.x .. ", " .. grid.offset.x+MaxDim .. "],},")
+io.write("yaxis: {nticks: 10,range: [" .. grid.offset.y .. ", " .. grid.offset.y+MaxDim .. "],},")
+io.write("zaxis: {nticks: 10,range: [" .. grid.offset.z .. ", " .. grid.offset.z+MaxDim .. "],},")
+io.write([[
+},
 };
 
 Plotly.newPlot('myDiv', data, layout);
@@ -766,21 +792,15 @@ function loader.boxify(groups, minfill, minsize, inspect)
 				--Every time we build ourselves a box, we will remove those voxels, we also will reset our search loop back to the
 				--beginning so that we research the grid, until finished.
 
-				--Note that instead of merely starting at 0 and counting up, we will instead be counting from a random point
-				--in the middle of each axis, helping to alleviate issues of skew in the boxing algo.
 				local i = 0
 				local j = 0
 				local k = 1
-				local target = {}
-				target.i = gridLengths.x - i
-				target.j = gridLengths.y - j
-				target.k = gridLengths.z - k
+
 				while (i < gridLengths.x) do
 					while (j < gridLengths.y) do
 						while (k < gridLengths.z+1) do
 							voxeldex = k + j * gridLengths.z + i * gridLengths.z * gridLengths.y
 
---DELETEME LATER
 							local boxNum = boxGroups[grindex].numBoxes
 
 							if groups.grid[grindex].voxels[voxeldex] == 1 then -- Found the first filled voxel
@@ -791,7 +811,7 @@ function loader.boxify(groups, minfill, minsize, inspect)
 								box.start.x = i+1 --start at 1
 								box.start.y = j+1
 								box.start.z = k
-								box.fin.x = i+1
+								box.fin.x = i+1 --end at 1
 								box.fin.y = j+1
 								box.fin.z = k
 								box.filled = 1 --number of filled and unfilled voxels in box
@@ -870,7 +890,7 @@ function loader.boxify(groups, minfill, minsize, inspect)
 
 									--Get number of Voxels forward
 									if box.fin.z == gridLengths.z then --Are we on the edge of our grid?
-										numVoxel.forward = 0 --Then there's nothing to the right
+										numVoxel.forward = 0 --Then there's nothing in front
 									else --we aren't so....
 										--We need to check what voxels are there
 										for right = box.start.x, box.fin.x, 1 do
@@ -923,7 +943,7 @@ function loader.boxify(groups, minfill, minsize, inspect)
 											tries = tries - 1
 										end
 
-										if remaining.right == maxVoxel and finding then --Then let's try left first
+										if remaining.right == maxVoxel and finding then --Then right
 											local filled = box.filled + numVoxel.right --number filled voxels
 											local unfilled = box.unfilled + (box.fin.y-box.start.y+1)*(box.fin.z-box.start.z+1) - numVoxel.right --number unfilled
 											if unfilled == 0 then
@@ -942,7 +962,7 @@ function loader.boxify(groups, minfill, minsize, inspect)
 											tries = tries - 1
 										end
 
-										if remaining.up == maxVoxel and finding then --Then let's try left first
+										if remaining.up == maxVoxel and finding then --Then up
 											local filled = box.filled + numVoxel.up --number filled voxels
 											local unfilled = box.unfilled + (box.fin.x-box.start.x+1)*(box.fin.z-box.start.z+1) - numVoxel.up --number unfilled
 											if unfilled == 0 then
@@ -961,7 +981,7 @@ function loader.boxify(groups, minfill, minsize, inspect)
 											tries = tries - 1
 										end
 
-										if remaining.down == maxVoxel and finding then --Then let's try left first
+										if remaining.down == maxVoxel and finding then --Then down
 											local filled = box.filled + numVoxel.down --number filled voxels
 											local unfilled = box.unfilled + (box.fin.x-box.start.x+1)*(box.fin.z-box.start.z+1) - numVoxel.down --number unfilled
 											if unfilled == 0 then
@@ -980,7 +1000,7 @@ function loader.boxify(groups, minfill, minsize, inspect)
 											tries = tries - 1
 										end
 
-										if remaining.backward == maxVoxel and finding then --Then let's try left first
+										if remaining.backward == maxVoxel and finding then --Then backward
 											local filled = box.filled + numVoxel.backward --number filled voxels
 											local unfilled = box.unfilled + (box.fin.x-box.start.x+1)*(box.fin.y-box.start.y+1) - numVoxel.backward --number unfilled
 											if unfilled == 0 then
@@ -999,7 +1019,7 @@ function loader.boxify(groups, minfill, minsize, inspect)
 											tries = tries - 1
 										end
 
-										if remaining.forward == maxVoxel and finding then --Then let's try left first
+										if remaining.forward == maxVoxel and finding then --Then forward
 											local filled = box.filled + numVoxel.forward --number filled voxels
 											local unfilled = box.unfilled + (box.fin.x-box.start.x+1)*(box.fin.y-box.start.y+1) - numVoxel.forward --number unfilled
 											if unfilled == 0 then
@@ -1008,7 +1028,6 @@ function loader.boxify(groups, minfill, minsize, inspect)
 												box.unfilled = unfilled
 												finding = false --We're done with this iteration
 											elseif filled/(unfilled+filled) > minfill then --minfill is given to the function, minimum filled voxel in each box
-												box.fin.z = box.fin.z + 1 --Grow our box
 												box.fin.z = box.fin.z + 1 --Grow our box
 												box.filled = filled --Update our filled,unfilled status
 												box.unfilled = unfilled
@@ -1204,21 +1223,34 @@ io.write("];")--end the block
 
 io.write([[
 var layout = {
-  autosize: false,
-  width: 1200,
-  height: 1000,
-  margin: {
-    l: 200,
-    r: 0,
-    b: 0,
-    t: 0,
-    pad: 4
-  },
-  showlegend: true,
-  legend: {
-	x: 1,
-	y: 0.5,
-   },
+	autosize: false,
+	width: 1200,
+	height: 1000,
+	margin: {
+		l: 200,
+		r: 0,
+		b: 0,
+		t: 0,
+		pad: 4
+	},
+	showlegend: true,
+	legend: {
+		x: 1,
+		y: 0.5,
+	},
+   	scene:{
+		aspectmode: "manual",
+        aspectratio: {
+            x: 1, y: 1, z: 1,
+        },         ]])
+
+--Find the largest dimension:
+local MaxDim = math.max(grid.dimensions.x, grid.dimensions.y, grid.dimensions.z)
+io.write("xaxis: {nticks: 10,range: [" .. grid.offset.x .. ", " .. grid.offset.x+MaxDim .. "],},")
+io.write("yaxis: {nticks: 10,range: [" .. grid.offset.y .. ", " .. grid.offset.y+MaxDim .. "],},")
+io.write("zaxis: {nticks: 10,range: [" .. grid.offset.z .. ", " .. grid.offset.z+MaxDim .. "],},")
+io.write([[
+},
 };
 
 Plotly.newPlot('myDiv', data, layout);
