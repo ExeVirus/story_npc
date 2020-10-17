@@ -2,8 +2,9 @@ local boxgen = require "./boxgen"
 local viewer = require "./viewer"
 local inspect = require "./inspect"
 local pause = require "./pause"
+local export = require "./export"
 
-local FILE = "models/glove.obj"
+local FILE = "models/spike.obj"
 local SPACING = 0.14
 local MINFILL = 0.75
 local MINVOL = 0.02
@@ -29,8 +30,8 @@ local groups = boxgen.breakup(grid, inspect)
 
 if groups.size.x*groups.size.y*groups.size.z > 1 then
     --Warn user that it's larger than 3x3x3
-    print("WARNING: Your object is outside normal collision box boundaries,\n you may want to consider shrinking it. This program will still generate the resulting collision box data\nand account for this fact,\n it's just often not what you want :)")
-	pause()
+    --print("WARNING: Your object is outside normal collision box boundaries,\n you may want to consider shrinking it. This program will still generate the resulting collision box data\nand account for this fact,\n it's just often not what you want :)")
+	--pause()
 	--Export the Subgrid Groups for Viewing, as they are relavent
     viewer.viewObjSubGrid(objfile, grid, groups)
 end
@@ -42,6 +43,12 @@ local boxGroups = boxgen.boxify(groups, MINFILL, MINVOL, MINQUAL, inspect)
 viewer.viewObjBoxes(objfile, grid, boxGroups)
 
 --
--- Export Minetest Readable data
+-- Export Minetest Readable data (JSON-Like)
 --
 
+local output = export(boxGroups)
+
+local outFile = io.open("data.box", "w+") --Open file for writing
+io.output(outFile)
+io.write(output)
+io.close(outFile)
