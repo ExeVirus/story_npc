@@ -1,0 +1,33 @@
+1. Export data to .box format
+2. Create registration function
+
+
+
+
+Needed Functionality:
+1. on_destruct (remove all nodes associated)
+2. On construct (check if able to place all nodes, otherwise, destruct)
+	if unable to construct, tell the player to check "/why" for more information
+3. on_rotate:
+	1. left click rotate: Spin in place
+	2. right click rotate: change axis (flip within axis first)
+		note: if unable, tell the player "skipped x-+, y-+, z-+", if completely unable to rotate, tell player "unable to rotate"
+		If skipped or unable to rotate, tell player to run a command to see why: "/why"
+
+
+details of On-Construct:
+	1. parent node is given a list of all the other node positions for destruct
+	2. Other nodes are given position of parent node.
+	3. Areas are checked for nodes present based on pre-defined data from .box data (which is a simple x,y,z array of "filled", "unfilled" based on the collision box data)
+	4. Predefined array used to place child nodes.
+
+details of on_destruct:
+	1. If parent, delete all children
+	2. If child, delete parent, and parent will delete children
+
+details of on_rotate:
+	1. If child, call parent's on_rotate
+	1. if parent, use the predefined array to check for space availability
+		if not, say -in MT coords- where there was/were conflicts (to the "why" function)
+			(i.e. finish the loop, and check a boolean at the end for open/filled)
+	2. If available, rotate by deleting all child nodes, changing child node locations and placing the child nodes based on pre-defined array. If completely unable to rotate in any direction of the click, say so.
