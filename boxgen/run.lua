@@ -42,11 +42,19 @@ local boxGroups = boxgen.boxify(groups, MINFILL, MINVOL, MINQUAL, inspect)
 --Export the boxes for viewing
 viewer.viewObjBoxes(objfile, grid, boxGroups)
 
+--Pre calculate the Minetest nodes that are going to be filled by these boxes
+local generated = export.calcNodes(boxGroups)
+
+	--Note that the first 3x3x3 is ALWAYS considered empty, i.e. no ground conflicts. This is to  actually allow initial placement.
+	--Also, I will add an option that just ignores all placement concerns and just does collisions and selections....
+
+--Precalculate the collision and selection box formated strings
+generated = export.format(generated)
+
 --
 -- Export Minetest Readable data (JSON-Like)
 --
-
-local output = export(boxGroups)
+output = export.serialize(boxGroups)
 
 local outFile = io.open("data.box", "w+") --Open file for writing
 io.output(outFile)

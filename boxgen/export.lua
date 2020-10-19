@@ -17,7 +17,9 @@
 --   2. Recursively dump the value into a string.
 -- @param x Value to serialize (nil is allowed).
 -- @return load()able string containing the value.
-function export(x)
+
+local export = {}
+function export.serialize(x)
 	local local_index  = 1  -- Top index of the "_" local table in the dump
 	-- table->nil/1/2 set of tables seen.
 	-- nil = not seen, 1 = seen once, 2 = seen multiple times.
@@ -166,6 +168,29 @@ function export(x)
 	else
 		return "return "..top_level
 	end
+end
+
+function export.calcNodes(boxGroups)
+	local data = boxGroups
+
+	--If size.x*size.y*size.z > 1
+		--get x,y,z of bounding box (fin-start)
+
+		--go from 0->end by 1's to calculate the number of nodes to check for. (that's a lot in some cases...)
+	--end if
+
+
+
+	return  data
+end
+
+function export.format(input)
+	local data = {}
+	--Load only stuff I need into data from input
+
+	--Then calculate each individual 3x3x3 node's collision and selection boxes and save in array that corresponds with its size
+
+	--Then calculate which 3x3x3's actually exist.
 end
 
 return export
