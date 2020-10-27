@@ -6,7 +6,7 @@ local pause = require "./pause"
 local export = require "./export"
 
 local FILE = "models/spike.obj"
-local SPACING = 0.14
+local SPACING = 0.1
 local MINFILL = 0.75
 local MINVOL = 0.02
 local MINQUAL = 0.1 --Don't grow when you the growth is really bad...
@@ -46,8 +46,11 @@ viewer.viewObjBoxes(objfile, grid, boxGroups)
 --Pre calculate the Minetest nodes that are going to be filled by these boxes
 local generated = export.calcNodes(boxGroups)
 
-	--Note that the first 3x3x3 is ALWAYS considered empty, i.e. no ground conflicts. This is to  actually allow initial placement.
-	--Also, I will add an option that just ignores all placement concerns and just does collisions and selections....
+--Note that the first 3x3x3 is ALWAYS considered empty, i.e. no ground conflicts. 
+--Because minetest won't let you place it otherwise ;)
+--As for the other nodes, only the center of each 3x3x3 must actually be available for the checks to 
+--succeed for rotations, etc.
+
 
 --Precalculate the collision and selection box formated strings
 generated = export.format(generated)

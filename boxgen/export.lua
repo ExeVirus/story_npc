@@ -172,25 +172,53 @@ end
 
 function export.calcNodes(boxGroups)
 	local data = boxGroups
-
-	--If size.x*size.y*size.z > 1
-		--get x,y,z of bounding box (fin-start)
-
-		--go from 0->end by 1's to calculate the number of nodes to check for. (that's a lot in some cases...)
-	--end if
-
-
+    
+    --I don't think this function is needed, essentially you just iterate over 
+    --each grindex (if sizes are greater than one 3x3x3) and see if numboxes > 0, that's it. 
+    
 
 	return  data
+end
+
+function boxesToString(input)
+    local Str = ""
+    
+    return Str
 end
 
 function export.format(input)
 	local data = {}
 	--Load only stuff I need into data from input
-
-	--Then calculate each individual 3x3x3 node's collision and selection boxes and save in array that corresponds with its size
-
-	--Then calculate which 3x3x3's actually exist.
+    data.offset = input.offset
+    data.size = input.size
+    data.nodes = {} --To be filled with each collision/selection box set, as well as a variable specifying it's filled
+    
+    --Loop through each set of boxes (3x3x3 area)
+    if data.size.x * data.size.y * data.size.z > 1 then
+        for a = 0, data.size.x-1, 1 do
+            for b = 0, data.size.y-1, 1 do
+                for c = 1, data.size.z, 1 do
+                    local grindex = c+b*groups.size.z+a*groups.size.z*groups.size.y
+                    --Instantiate a new table at the index
+                    data.nodes[grindex] = {}
+                    
+                    if input[grindex].numBoxes > 0 then
+                        data.nodes[grindex].filled = 0
+                        data.nodes[grindex].boxList = boxesToString(input[grindex])
+                        --Calculate each individual 3x3x3 node's collision and selection boxes and save in array that corresponds with its size
+                    else
+                        data.nodes[grindex].filled = 0 --no Boxes, so no need to check this spot
+                    end
+                end
+            end
+        end
+    else
+        data.nodes[1] = {}
+        data.nodes[1].filled = 1
+        data.nodes[1].boxList = boxesToString(input[grindex])
+    end
+	
+    return data
 end
 
 return export
