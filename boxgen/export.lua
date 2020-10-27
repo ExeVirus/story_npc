@@ -198,7 +198,7 @@ function export.format(input)
         for a = 0, data.size.x-1, 1 do
             for b = 0, data.size.y-1, 1 do
                 for c = 1, data.size.z, 1 do
-                    local grindex = c+b*groups.size.z+a*groups.size.z*groups.size.y
+                    local grindex = c+b*input.size.z+a*input.size.z*input.size.y
                     --Instantiate a new table at the index
                     data.nodes[grindex] = {}
                     

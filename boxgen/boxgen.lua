@@ -1,14 +1,11 @@
 local boxgen = {}
 
+local vector = require("vector")
+
 function boxgen.load(file)
 	assert(file_exists(file), "File not found: " .. file)
 
-	local get_lines
-
-
-	get_lines = io.lines
-
-
+	local get_lines = io.lines
 	local lines = {}
 
 	for line in get_lines(file) do
@@ -79,6 +76,34 @@ function boxgen.parse(object)
 	return obj
 end
 
+--
+-- Offset will take in x,y,z values to offset to 
+-- and output a new .obj with verticies moved by that offset
+function boxgen.offset(file,outfile,x,y,z)
+    assert(file_exists(file), "File not found: " .. file)
+    
+    
+    local export = io.open(outfile, "w+") --Open file for writing
+    io.output(export)
+    
+    local get_lines = io.lines
+    
+    for line in get_lines(file) do
+        --Edit each line before saving the line to our output
+        local l = string_split(line, "%s+")
+        if l[1] == "v" then
+            line = "v ".. tonumber(l[2])+x .. " " .. tonumber(l[3])+y .. " " .. tonumber(l[4])+z .. "\n"
+        else
+            line = line .. "\n"
+        end
+        
+        --output the line
+        io.write(line) 
+	end
+    
+    io.close(export)
+end
+
 function boxgen.deref(object)
 	local obj = {}
 	for i, v in ipairs(object.f) do
@@ -132,7 +157,7 @@ end
 --		returns: 1 or 0
 --
 
-local vector = require("vector")
+
 
 function raycast( x,y,z, triangle)
 	local EPSILON = 0.00001
@@ -254,6 +279,7 @@ end
 function boxgen.breakup(grid, inspect)
 	local groups = {}
 	local q = 3 --q = cutoff
+
 
 	--groups.size is the number of broken up boxes along each axis.
 	groups.size = {}

@@ -6,10 +6,12 @@ local pause = require "./pause"
 local export = require "./export"
 
 local FILE = "models/spike.obj"
+local OUTFILE = "spikeR.obj"
 local SPACING = 0.1
 local MINFILL = 0.75
 local MINVOL = 0.02
 local MINQUAL = 0.1 --Don't grow when you the growth is really bad...
+local RELOCATE = true
 
 --Load Object File
 local objfile = boxgen.load(FILE)
@@ -26,8 +28,24 @@ print("Finished voxelize\n")
 viewer.viewObjGrid(objfile, grid)
 print("Output Grid & OBJ to ObjGrid.html\n")
 
---Break the grid into 3x3x3 chunks
-local groups = boxgen.breakup(grid, inspect)
+local reposition = {}
+
+--We need to position the voxelized grid to the correct offset from our placement node
+--Which has bottom left corner at -1.5,-1.5,-1.5
+reposition.x = -1.5 - grid.offset.x 
+reposition.y = -1.5 - grid.offset.y
+reposition.z = -1.5 - grid.offset.z 
+
+--IF the user
+if RELOCATE then
+    --Then we need to change position of all verticies in the obj file to match our output
+    boxgen.offset(FILE,OUTFILE,reposition.x,reposition.y,reposition.z)
+else
+    
+end
+
+--Break the grid into 3x3x3 chunks (using reposition to adjust location
+local groups = boxgen.breakup(grid, inspect, RELOCATE, reposition)
 
 if groups.size.x*groups.size.y*groups.size.z > 1 then
     --Warn user that it's larger than 3x3x3
