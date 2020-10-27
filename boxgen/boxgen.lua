@@ -229,9 +229,20 @@ end
 
 -- Finally, we return our resulting voxel grid
 
-function boxgen.voxelize(object, spacing)
+function boxgen.voxelize(object, spacing, relocate, reposition)
 	local grid = {}
 	grid.offset, grid.dimensions = boxgen.boundingBox( object )
+    
+    if relocate == false then --Adjust for repositioning 
+        --This will essentially create more empty voxels, but that helps later when 
+        --we are adding up empty space :)
+        grid.dimensions.x = grid.dimensions.x + math.abs(reposition.x)
+        grid.dimensions.y = grid.dimensions.y + math.abs(reposition.y)
+        grid.dimensions.z = grid.dimensions.z + math.abs(reposition.z)
+        grid.offset.x = grid.offset.x + math.min(0, reposition.x)
+        grid.offset.y = grid.offset.y + math.min(0, reposition.y)
+        grid.offset.z = grid.offset.z + math.min(0, reposition.z)
+    end
 	--Note: if you're spacing is too large, the object will 100% fail to be voxelized in a useful manner. You
 	--need at least 2 points in all directions to make a box. 1 point in any direction doesn't cut it.
 	grid.voxels = {}
@@ -276,16 +287,33 @@ end
 -- grid = object containing dimensions and vertex values in linear array.
 -- the returned groups contains multiple "grids" and has an associated "size" saying how many groups there are
 -- Empty resulting boxes are not found at this time.
-function boxgen.breakup(grid, inspect)
+function boxgen.breakup(grid, inspect, relocate, reposition)
 	local groups = {}
 	local q = 3 --q = cutoff
 
-
 	--groups.size is the number of broken up boxes along each axis.
 	groups.size = {}
-	groups.size.x = math.floor((grid.dimensions.x / q))+1
-	groups.size.y = math.floor((grid.dimensions.y / q))+1
-	groups.size.z = math.floor((grid.dimensions.z / q))+1
+    if relocate == false then
+        if math.abs(reposition.x) % q > 0.0001 and reposition.x < 0 then 
+            groups.size.x = math.floor((grid.dimensions.x / q))+2
+        else
+            groups.size.x = math.floor((grid.dimensions.x / q))+1
+        end
+        if math.abs(reposition.y) % q > 0.0001 and reposition.y < 0 then 
+            groups.size.y = math.floor((grid.dimensions.y / q))+2
+        else
+            groups.size.y = math.floor((grid.dimensions.y / q))+1
+        end
+        if math.abs(reposition.z) % q > 0.0001 and reposition.z < 0 then 
+            groups.size.z = math.floor((grid.dimensions.z / q))+2
+        else
+            groups.size.z = math.floor((grid.dimensions.z / q))+1
+        end
+    else
+        groups.size.x = math.floor((grid.dimensions.x / q))+1
+        groups.size.y = math.floor((grid.dimensions.y / q))+1
+        groups.size.z = math.floor((grid.dimensions.z / q))+1
+    end
 	groups.grid = {}
 	if (groups.size.x + groups.size.y + groups.size.z ~= q) then
 		local index = 1
@@ -320,10 +348,41 @@ function boxgen.breakup(grid, inspect)
 					end
 					--Calculate the dimensions, lessor of full expected length and remaining original grid dimension
 					groups.grid[index].dimensions = {}
-					groups.grid[index].dimensions.x = math.min(q, grid.dimensions.x - q * i)
-					groups.grid[index].dimensions.y = math.min(q, grid.dimensions.y - q * j)
-					groups.grid[index].dimensions.z = math.min(q, grid.dimensions.z - q * (k-1))
-					--Set the gridLengths:
+                    if relocate == false then
+                        --Need to account for the first rows being shorter, and last rows being longer.
+                        if i == 0 then --first row of x
+                            if math.abs(reposition.x) % q ~= 0 and reposition.x < 0 then --It's less than full width
+                                groups.grid[index].dimensions.x = 3 - math.abs(reposition.x) % q 
+                            else
+                                groups.grid[index].dimensions.x = math.min(q, grid.dimensions.x - q * i)
+                            end
+                        else
+                            groups.grid[index].dimensions.x = math.min(q, grid.dimensions.x - q * (i-1) - groups.grid[1].dimensions.x)
+                        end
+                        if j == 0 then --first row of y
+                            if math.abs(reposition.y) % q ~= 0 and reposition.y < 0 then --It's less than full width
+                                groups.grid[index].dimensions.y = 3 - math.abs(reposition.y) % q 
+                            else
+                                groups.grid[index].dimensions.y = math.min(q, grid.dimensions.y - q * j)
+                            end
+                        else
+                            groups.grid[index].dimensions.y = math.min(q, grid.dimensions.y - q * (j-1) - groups.grid[1].dimensions.y)
+                        end
+                        if k == 1 then --first row of z
+                            if math.abs(reposition.z) % q ~= 0 and reposition.z < 0 then --It's less than full width
+                                groups.grid[index].dimensions.z = 3 - math.abs(reposition.z) % q 
+                            else
+                                groups.grid[index].dimensions.z = math.min(q, grid.dimensions.z - q * (k-1))
+                            end
+                        else
+                            groups.grid[index].dimensions.y = math.min(q, grid.dimensions.y - q * (k-2) - groups.grid[1].dimensions.z)
+                        end
+                    else 
+                        groups.grid[index].dimensions.x = math.min(q, grid.dimensions.x - q * i)
+                        groups.grid[index].dimensions.y = math.min(q, grid.dimensions.y - q * j)
+                        groups.grid[index].dimensions.z = math.min(q, grid.dimensions.z - q * (k-1))
+					end
+                    --Set the gridLengths:
 					groups.grid[index].lengths = {}
 					groups.grid[index].lengths.x = 0
 					groups.grid[index].lengths.y = 0
@@ -389,7 +448,7 @@ function boxgen.breakup(grid, inspect)
 			end
 		end
 	else
-		groups.grid[1] = grid --Only 1 grid in -1.49->1.49.
+		groups.grid[1] = grid --Only 1 grid in -1.5->1.5.
 		groups.grid[1].position = {}
 		groups.grid[1].position.x = 0
 		groups.grid[1].position.y = 0
@@ -717,15 +776,16 @@ function boxgen.boxify(groups, minfill, minsize, minqual, inspect)
 												end
 											end
 											groups.grid[grindex].numFilledVoxels = groups.grid[grindex].numFilledVoxels - box.filled
-											--save box, with spacing adjustments to coutneract tight-fittedness
+											--save box, with spacing adjustments to counteract tight-fittedness
 											box.start.x = box.start.x - 0.5
 											box.start.y = box.start.y - 0.5
 											box.start.z = box.start.z - 0.5
 											box.fin.x = box.fin.x + 0.5
 											box.fin.y = box.fin.y + 0.5
 											box.fin.z = box.fin.z + 0.5
-											boxGroups[grindex].boxes[boxGroups[grindex].numBoxes+1] = box
-											boxGroups[grindex].numBoxes = boxGroups[grindex].numBoxes + 1
+                                            boxGroups[grindex].numBoxes = boxGroups[grindex].numBoxes + 1
+											boxGroups[grindex].boxes[boxGroups[grindex].numBoxes] = box
+											
 										end
 										run_algo = false --Done with this box
 										if boxNum ~= boxGroups[grindex].numBoxes then
