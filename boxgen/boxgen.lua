@@ -490,8 +490,11 @@ function boxgen.boxify(groups, minfill, minsize, minqual, inspect)
 				boxGroups[grindex].offset.x = groups.grid[grindex].offset.x + groups.grid[grindex].position.x
 				boxGroups[grindex].offset.y = groups.grid[grindex].offset.y + groups.grid[grindex].position.y
 				boxGroups[grindex].offset.z = groups.grid[grindex].offset.z + groups.grid[grindex].position.z
-
-
+                boxGroups[grindex].dimension = {}
+                boxGroups[grindex].dimension.x = groups.grid[grindex].lengths.x * boxGroups.spacing
+                boxGroups[grindex].dimension.y = groups.grid[grindex].lengths.y * boxGroups.spacing
+                boxGroups[grindex].dimension.z = groups.grid[grindex].lengths.z * boxGroups.spacing
+                
 				-----------Now we go through the grid algorithm--------------------
 
 				--First we get the number of voxels along each axis for the grid

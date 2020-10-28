@@ -1,5 +1,5 @@
 local vector = require("vector")
-
+local inspect = require "./inspect"
 --- Lua module to serialize values as Lua code.
 -- From: https://github.com/fab13n/metalua/blob/no-dll/src/lib/serialize.lua
 -- License: MIT
@@ -177,8 +177,9 @@ function boxesToString(input)
     local i = 1
     if input.numBoxes > 0 then
         while (i < input.numBoxes+1) do
-            local start = vector.add(input.boxes[i].start, input.offset)
-            local fin = vector.add(input.boxes[i].fin, input.offset)
+            --Subtract the offset, then move to -1.5 starting point
+            local start = vector.subtract(vector.subtract(input.boxes[i].start, input.offset),1.5)
+            local fin = vector.subtract(vector.subtract(input.boxes[i].fin, input.offset),1.5)
             Str = Str .. "{" .. start.x.. ", " .. start.y .. ", " ..start.z .. ", " ..fin.x .. ", " ..fin.y .. ", " ..fin.z .. "}"
             i = i + 1
         end
@@ -195,16 +196,16 @@ end
 function CheckPlacement(input) 
     local x,y,z --booleans
     local ep = 0.001 --epsilon
-    x = input.offset.x + 1.5 < ep and input.offset.x + 1.5 > -ep
-    y = input.offset.y + 1.5 < ep and input.offset.y + 1.5 > -ep
-    z = input.offset.z + 1.5 < ep and input.offset.z + 1.5 > -ep
+    x = input.offset.x < 0 and (input.offset.x + input.dimension.x) > 0
+    y = input.offset.y < 0 and (input.offset.y + input.dimension.y) > 0
+    z = input.offset.z < 0 and (input.offset.z + input.dimension.z) > 0
     return x and y and z
 end
 
-function export.format(input)
+function export.format(input, relocate)
 	local data = {}
 	--Load only stuff I need into data from input
-    
+    local Placement_Index = -1
     if relocate == false then
         --Typically the first boxgroup we come across is not the placement node's boxgroup 
         --when not doing relocation. Which means we first seach and find that placement node 
@@ -227,6 +228,7 @@ function export.format(input)
                             data.nodes[1].position.x = a
                             data.nodes[1].position.y = b
                             data.nodes[1].position.z = c-1
+                            Placement_Index = grindex
                         end
                     end
                 end
@@ -235,7 +237,7 @@ function export.format(input)
                 for b = 0, input.size.y-1, 1 do
                     for c = 1, input.size.z, 1 do
                         local grindex = c+b*input.size.z+a*input.size.z*input.size.y
-                        if input[grindex].numBoxes > 0 then
+                        if input[grindex].numBoxes > 0 and grindex ~= Placement_Index then
                             data.numNodes = data.numNodes + 1
                             data.nodes[data.numNodes] = {}
                             data.nodes[data.numNodes].boxList = boxesToString(input[grindex])
@@ -243,7 +245,6 @@ function export.format(input)
                             data.nodes[data.numNodes].position.x = a   - data.nodes[1].position.x
                             data.nodes[data.numNodes].position.y = b   - data.nodes[1].position.y
                             data.nodes[data.numNodes].position.z = c-1 - data.nodes[1].position.z
-                            
                         end
                     end
                 end
@@ -267,21 +268,22 @@ function export.format(input)
             data.nodes[1].position.x = 0
             data.nodes[1].position.y = 0
             data.nodes[1].position.z = 0
+            Placement_Index = 1
             for a = 0, input.size.x-1, 1 do
                 for b = 0, input.size.y-1, 1 do
-                    for c = 2, input.size.z, 1 do
+                    for c = 1, input.size.z, 1 do
                         local grindex = c+b*input.size.z+a*input.size.z*input.size.y
                         --Instantiate a new table at the index
-                        if input[grindex].numBoxes > 0 then
+                        if input[grindex].numBoxes > 0 and Placement_Index ~= grindex then
                             --The first index is always the placement node in this setup.
-                            data.nodes[data.numNodes+1] = {}
-                            data.nodes[data.numNodes+1].boxList = boxesToString(input[grindex])
-                            data.nodes[data.numNodes+1].position = {}
-                            data.nodes[data.numNodes+1].position.x = a
-                            data.nodes[data.numNodes+1].position.y = b
-                            data.nodes[data.numNodes+1].position.z = c
-                            --Calculate each individual 3x3x3 node's collision and selection boxes and save in array that corresponds with its size
                             data.numNodes = data.numNodes + 1
+                            data.nodes[data.numNodes] = {}
+                            data.nodes[data.numNodes].boxList = boxesToString(input[grindex])
+                            data.nodes[data.numNodes].position = {}
+                            data.nodes[data.numNodes].position.x = a
+                            data.nodes[data.numNodes].position.y = b
+                            data.nodes[data.numNodes].position.z = c-1
+                            --Calculate each individual 3x3x3 node's collision and selection boxes and save in array that corresponds with its size
                         end
                     end
                 end

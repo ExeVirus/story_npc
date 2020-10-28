@@ -5,7 +5,7 @@ local inspect = require "./inspect"
 local pause = require "./pause"
 local export = require "./export"
 
-local name = "test"
+local name = "spike"
 local FILE = "models/" .. name .. ".obj"
 local OUTFILE = name .. "R.obj"
 local SPACING = 0.1
@@ -70,8 +70,8 @@ viewer.viewObjBoxes(objfile, grid, boxGroups)
 --Precalculate the collision and selection box formated strings, as well as
 --make a list of x,y,z (in node-coords) from placement node to where these collision and selection boxes
 --Should go. I.e. @ y = 1 (1 above) placement node, use this string for collision boxes and this string for selection boxes:
-local output = export.format(boxGroups)
-print(inspect(output.nodes[2]))
+local output = export.format(boxGroups, RELOCATE)
+print(inspect(output.nodes))
 --
 -- Export Minetest Readable data (JSON-Like)
 --
