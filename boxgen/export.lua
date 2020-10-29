@@ -1,3 +1,5 @@
+local vector = require("vector")
+local inspect = require "./inspect"
 --- Lua module to serialize values as Lua code.
 -- From: https://github.com/fab13n/metalua/blob/no-dll/src/lib/serialize.lua
 -- License: MIT
@@ -170,27 +172,133 @@ function export.serialize(x)
 	end
 end
 
-function export.calcNodes(boxGroups)
-	local data = boxGroups
-
-	--If size.x*size.y*size.z > 1
-		--get x,y,z of bounding box (fin-start)
-
-		--go from 0->end by 1's to calculate the number of nodes to check for. (that's a lot in some cases...)
-	--end if
-
-
-
-	return  data
+function boxesToString(input)
+    local Str = "{"
+    local i = 1
+    if input.numBoxes > 0 then
+        while (i < input.numBoxes+1) do
+            --Subtract the offset, then move to -1.5 starting point
+            local start = vector.subtract(vector.subtract(input.boxes[i].start, input.offset),1.5)
+            local fin = vector.subtract(vector.subtract(input.boxes[i].fin, input.offset),1.5)
+            Str = Str .. "{" .. start.x.. ", " .. start.y .. ", " ..start.z .. ", " ..fin.x .. ", " ..fin.y .. ", " ..fin.z .. "}"
+            i = i + 1
+        end
+    end
+    Str = Str .. "}"
+    return Str
 end
 
-function export.format(input)
+--
+-- CheckPlacement
+--
+-- Checks the input.offset and sees if it's really close to -1.5,-1.5,-1.5
+
+function CheckPlacement(input) 
+    local x,y,z --booleans
+    local ep = 0.001 --epsilon
+    x = input.offset.x < 0 and (input.offset.x + input.dimension.x) > 0
+    y = input.offset.y < 0 and (input.offset.y + input.dimension.y) > 0
+    z = input.offset.z < 0 and (input.offset.z + input.dimension.z) > 0
+    return x and y and z
+end
+
+function export.format(input, relocate)
 	local data = {}
 	--Load only stuff I need into data from input
+    local Placement_Index = -1
+    if relocate == false then
+        --Typically the first boxgroup we come across is not the placement node's boxgroup 
+        --when not doing relocation. Which means we first seach and find that placement node 
+        --save it's data, set it's numBoxes to zero, and start over counting
+        
+        --When we come across the correct position for the node, we'll populate data.nodes[1]
+        --This way, later in Minetest, we can always assume the placement node is in [1]. Nifty;)
+        data.nodes = {} --To be filled with each collision/selection box set and associated x,y,z coord
+        data.numNodes = 1 -- to be added to later
+        
+        if input.size.x * input.size.y * input.size.z > 1 then
+            for a = 0, input.size.x-1, 1 do
+                for b = 0, input.size.y-1, 1 do
+                    for c = 1, input.size.z, 1 do
+                        local grindex = c+b*input.size.z+a*input.size.z*input.size.y
+                        if CheckPlacement(input[grindex]) then
+                            data.nodes[1] = {}
+                            data.nodes[1].boxList = boxesToString(input[grindex])
+                            data.nodes[1].position = {}
+                            data.nodes[1].position.x = a
+                            data.nodes[1].position.y = b
+                            data.nodes[1].position.z = c-1
+                            Placement_Index = grindex
+                        end
+                    end
+                end
+             end
+             for a = 0, input.size.x-1, 1 do
+                for b = 0, input.size.y-1, 1 do
+                    for c = 1, input.size.z, 1 do
+                        local grindex = c+b*input.size.z+a*input.size.z*input.size.y
+                        if input[grindex].numBoxes > 0 and grindex ~= Placement_Index then
+                            data.numNodes = data.numNodes + 1
+                            data.nodes[data.numNodes] = {}
+                            data.nodes[data.numNodes].boxList = boxesToString(input[grindex])
+                            data.nodes[data.numNodes].position = {}
+                            data.nodes[data.numNodes].position.x = a   - data.nodes[1].position.x
+                            data.nodes[data.numNodes].position.y = b   - data.nodes[1].position.y
+                            data.nodes[data.numNodes].position.z = c-1 - data.nodes[1].position.z
+                        end
+                    end
+                end
+            end        
+        else
+            data.nodes[1] = {}
+            data.nodes[1].boxList = boxesToString(input[1])
+            data.nodes[1].position = {}
+            data.nodes[1].position.x = 0
+            data.nodes[1].position.y = 0
+            data.nodes[1].position.z = 0
+        end
+    else
+        data.nodes = {} --To be filled with each collision/selection box set and associated x,y,z coord
+        data.numNodes = 1
+        if input.size.x * input.size.y * input.size.z > 1 then
+            --Set up the placement node
+            data.nodes[1] = {}
+            data.nodes[1].boxList = boxesToString(input[1])
+            data.nodes[1].position = {}
+            data.nodes[1].position.x = 0
+            data.nodes[1].position.y = 0
+            data.nodes[1].position.z = 0
+            Placement_Index = 1
+            for a = 0, input.size.x-1, 1 do
+                for b = 0, input.size.y-1, 1 do
+                    for c = 1, input.size.z, 1 do
+                        local grindex = c+b*input.size.z+a*input.size.z*input.size.y
+                        --Instantiate a new table at the index
+                        if input[grindex].numBoxes > 0 and Placement_Index ~= grindex then
+                            --The first index is always the placement node in this setup.
+                            data.numNodes = data.numNodes + 1
+                            data.nodes[data.numNodes] = {}
+                            data.nodes[data.numNodes].boxList = boxesToString(input[grindex])
+                            data.nodes[data.numNodes].position = {}
+                            data.nodes[data.numNodes].position.x = a
+                            data.nodes[data.numNodes].position.y = b
+                            data.nodes[data.numNodes].position.z = c-1
+                            --Calculate each individual 3x3x3 node's collision and selection boxes and save in array that corresponds with its size
+                        end
+                    end
+                end
+            end
+        else
+            data.nodes[1] = {}
+            data.nodes[1].boxList = boxesToString(input[1])
+            data.nodes[1].position = {}
+            data.nodes[1].position.x = 0
+            data.nodes[1].position.y = 0
+            data.nodes[1].position.z = 0
+        end
+    end
 
-	--Then calculate each individual 3x3x3 node's collision and selection boxes and save in array that corresponds with its size
-
-	--Then calculate which 3x3x3's actually exist.
+    return data
 end
 
 return export
