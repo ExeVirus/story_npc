@@ -332,7 +332,7 @@ end
 --Function view_boxes(box,offset,spacing,name) exports a single box plot from boxify
 --
 --name is the name on the html file you will see
-function viewer.view_box(box,offset,spacing,name, color)
+function viewer.view_box(box,offset,spacing,name,color,group)
 	local output = ""--String for plotly
 	--strings for x's, y's, z's :)
 	local start = box.start
@@ -364,6 +364,7 @@ function viewer.view_box(box,offset,spacing,name, color)
 	output = output .. "opacity: 0.2, \n"
 	output = output .. "color:".. color ..",\n"
 	output = output .. "name: '" .. name .. "',\n"
+    output = output .. "legendgroup: '" .. group .. "',\n"
 	output = output .. "showlegend: true,\n"
 	output = output .. "type: 'mesh3d',\n}\n"
 	return output
@@ -391,7 +392,7 @@ function viewer.viewObjBoxes(objfile, grid, boxGroups)
     --Export all the resulting boxes
     for i = 1, boxGroups.size.x*boxGroups.size.y*boxGroups.size.z, 1 do
         for j = 1, boxGroups[i].numBoxes, 1 do
-            io.write(viewer.view_box(boxGroups[i].boxes[j], boxGroups[i].offset, boxGroups.spacing, "set" .. i .."box" .. j, colors[((i-1) % 7)+1]))
+            io.write(viewer.view_box(boxGroups[i].boxes[j], boxGroups[i].offset, boxGroups.spacing, "set" .. i .."box" .. j, colors[((i-1) % 7)+1],"set" .. i))
         end
     end
     io.write("var data = [{ \n")

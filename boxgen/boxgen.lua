@@ -1,6 +1,7 @@
 local boxgen = {}
 
 local vector = require("vector")
+local inspect = require("inspect")
 
 function boxgen.load(file)
 	assert(file_exists(file), "File not found: " .. file)
@@ -239,9 +240,9 @@ function boxgen.voxelize(object, spacing, relocate, reposition)
         grid.dimensions.x = grid.dimensions.x + math.abs(reposition.x)
         grid.dimensions.y = grid.dimensions.y + math.abs(reposition.y)
         grid.dimensions.z = grid.dimensions.z + math.abs(reposition.z)
-        grid.offset.x = grid.offset.x + math.min(0, reposition.x)
-        grid.offset.y = grid.offset.y + math.min(0, reposition.y)
-        grid.offset.z = grid.offset.z + math.min(0, reposition.z)
+        grid.offset.x = grid.offset.x - math.max(0, reposition.x)
+        grid.offset.y = grid.offset.y - math.max(0, reposition.y)
+        grid.offset.z = grid.offset.z - math.max(0, reposition.z)
     end
 	--Note: if you're spacing is too large, the object will 100% fail to be voxelized in a useful manner. You
 	--need at least 2 points in all directions to make a box. 1 point in any direction doesn't cut it.
@@ -281,6 +282,16 @@ function boxgen.voxelize(object, spacing, relocate, reposition)
 
 	return grid
 end
+
+--
+-- Modulo - Respects signs
+--
+function boxgen.modulo(a, b)
+    local retval = math.abs(a) % b
+    local sign = (a > 0 and 1 or (a == 0 and 0 or -1))
+    return retval * sign
+end
+
 
 --
 -- Break Up(grid): Splits the grid into multiple grids that fit max node bounding box size (-1.5, 1.5)
@@ -329,30 +340,99 @@ function boxgen.breakup(grid, inspect, relocate, reposition)
 					groups.grid[index].voxels = {}
 					--Calculate the offsets
 					groups.grid[index].offset = {}
-					groups.grid[index].offset.x = grid.offset.x + q * (i)
-					groups.grid[index].offset.y = grid.offset.y + q * (j)
-					groups.grid[index].offset.z = grid.offset.z + q * (k-1)
+                    if relocate == false then
+                        if grid.offset.x < -1.5 then 
+                            if i == 0 then
+                                groups.grid[index].offset.x = grid.offset.x
+                            else
+                                groups.grid[index].offset.x = grid.offset.x + q * (i-1) - boxgen.modulo(reposition.x,q)
+                            end
+                        else
+                            groups.grid[index].offset.x = grid.offset.x + q * (i)
+                        end
+                        if grid.offset.y < -1.5 then 
+                            if j == 0 then
+                                groups.grid[index].offset.y = grid.offset.y
+                            else
+                                groups.grid[index].offset.y = grid.offset.y + q * (j-1) - boxgen.modulo(reposition.y,q)
+                            end
+                        else
+                            groups.grid[index].offset.y = grid.offset.y + q * (j)
+                        end
+                        if grid.offset.z < -1.5 then 
+                            if k == 1 then
+                                groups.grid[index].offset.z = grid.offset.z
+                            else
+                                groups.grid[index].offset.z = grid.offset.z + q * (k-2) - boxgen.modulo(reposition.z,q)
+                            end
+                        else
+                            groups.grid[index].offset.z = grid.offset.z + q * (k-1)
+                        end
+                    else
+                        groups.grid[index].offset.x = grid.offset.x + q * (i)
+                        groups.grid[index].offset.y = grid.offset.y + q * (j)
+                        groups.grid[index].offset.z = grid.offset.z + q * (k-1)
+                    end
 					--calculate the starting position of the first point for this grid
 					groups.grid[index].position = {}
-					groups.grid[index].position.x = (math.floor((groups.grid[index].offset.x - groups.grid[1].offset.x) / grid.spacing)+1) * grid.spacing - (groups.grid[index].offset.x - groups.grid[1].offset.x)
-					groups.grid[index].position.y = (math.floor((groups.grid[index].offset.y - groups.grid[1].offset.y) / grid.spacing)+1) * grid.spacing - (groups.grid[index].offset.y - groups.grid[1].offset.y)
-					groups.grid[index].position.z = (math.floor((groups.grid[index].offset.z - groups.grid[1].offset.z) / grid.spacing)+1) * grid.spacing - (groups.grid[index].offset.z - groups.grid[1].offset.z)
-					if math.abs(groups.grid[index].position.x - grid.spacing) < 0.0001 then --0.0001 is epsilon because I do so much multiplication above ^^^
-						groups.grid[index].position.x = 0
-					end
-					if math.abs(groups.grid[index].position.y - grid.spacing) < 0.0001 then
-						groups.grid[index].position.y = 0
-					end
-					if math.abs(groups.grid[index].position.z - grid.spacing) < 0.0001 then
-						groups.grid[index].position.z = 0
-					end
+                    if relocate == false then
+                        if grid.offset.x < -1.5 then
+                            if i == 0 then
+                                groups.grid[index].position.x = 0
+                            else
+                                groups.grid[index].position.x = boxgen.modulo(reposition.x, grid.spacing) + grid.spacing
+                            end
+                        else
+                            groups.grid[index].position.x = (math.floor((groups.grid[index].offset.x - groups.grid[1].offset.x) / grid.spacing)+1) * grid.spacing - (groups.grid[index].offset.x - groups.grid[1].offset.x)
+                            if math.abs(groups.grid[index].position.x - grid.spacing) < 0.0001 then --0.0001 is epsilon because I do so much multiplication above ^^^
+                                groups.grid[index].position.x = 0
+                            end
+                        end
+                        if grid.offset.y < -1.5 then
+                            if j == 0 then
+                                groups.grid[index].position.y = 0
+                            else
+                                groups.grid[index].position.y = boxgen.modulo(reposition.y, grid.spacing) + grid.spacing
+                            end
+                        else                        
+                            groups.grid[index].position.y = (math.floor((groups.grid[index].offset.y - groups.grid[1].offset.y) / grid.spacing)+1) * grid.spacing - (groups.grid[index].offset.y - groups.grid[1].offset.y)
+                            if math.abs(groups.grid[index].position.y - grid.spacing) < 0.0001 then
+                                groups.grid[index].position.y = 0
+                            end
+                        end
+                        if grid.offset.z < -1.5 then
+                            if k == 1 then
+                                groups.grid[index].position.z = 0
+                            else
+                                groups.grid[index].position.z = boxgen.modulo(reposition.z, grid.spacing) + grid.spacing
+                            end
+                        else
+                            groups.grid[index].position.z = (math.floor((groups.grid[index].offset.z - groups.grid[1].offset.z) / grid.spacing)+1) * grid.spacing - (groups.grid[index].offset.z - groups.grid[1].offset.z)
+                            if math.abs(groups.grid[index].position.z - grid.spacing) < 0.0001 then
+                                groups.grid[index].position.z = 0
+                            end
+                        end
+					else
+                        groups.grid[index].position.x = (math.floor((groups.grid[index].offset.x - groups.grid[1].offset.x) / grid.spacing)+1) * grid.spacing - (groups.grid[index].offset.x - groups.grid[1].offset.x)
+                        groups.grid[index].position.y = (math.floor((groups.grid[index].offset.y - groups.grid[1].offset.y) / grid.spacing)+1) * grid.spacing - (groups.grid[index].offset.y - groups.grid[1].offset.y)
+                        groups.grid[index].position.z = (math.floor((groups.grid[index].offset.z - groups.grid[1].offset.z) / grid.spacing)+1) * grid.spacing - (groups.grid[index].offset.z - groups.grid[1].offset.z)
+                        if math.abs(groups.grid[index].position.x - grid.spacing) < 0.0001 then --0.0001 is epsilon because I do so much multiplication above ^^^
+                            groups.grid[index].position.x = 0
+                        end
+                        if math.abs(groups.grid[index].position.y - grid.spacing) < 0.0001 then
+                            groups.grid[index].position.y = 0
+                        end
+                        if math.abs(groups.grid[index].position.z - grid.spacing) < 0.0001 then
+                            groups.grid[index].position.z = 0
+                        end
+                    end
 					--Calculate the dimensions, lessor of full expected length and remaining original grid dimension
 					groups.grid[index].dimensions = {}
                     if relocate == false then
                         --Need to account for the first rows being shorter, and last rows being longer.
                         if i == 0 then --first row of x
                             if math.abs(reposition.x) % q ~= 0 and reposition.x < 0 then --It's less than full width
-                                groups.grid[index].dimensions.x = 3 - math.abs(reposition.x) % q 
+                                groups.grid[index].dimensions.x = -boxgen.modulo(reposition.x, q)
                             else
                                 groups.grid[index].dimensions.x = math.min(q, grid.dimensions.x - q * i)
                             end
@@ -361,7 +441,7 @@ function boxgen.breakup(grid, inspect, relocate, reposition)
                         end
                         if j == 0 then --first row of y
                             if math.abs(reposition.y) % q ~= 0 and reposition.y < 0 then --It's less than full width
-                                groups.grid[index].dimensions.y = 3 - math.abs(reposition.y) % q 
+                                groups.grid[index].dimensions.y = -boxgen.modulo(reposition.y, q)
                             else
                                 groups.grid[index].dimensions.y = math.min(q, grid.dimensions.y - q * j)
                             end
@@ -370,7 +450,7 @@ function boxgen.breakup(grid, inspect, relocate, reposition)
                         end
                         if k == 1 then --first row of z
                             if math.abs(reposition.z) % q ~= 0 and reposition.z < 0 then --It's less than full width
-                                groups.grid[index].dimensions.z = 3 - math.abs(reposition.z) % q 
+                                groups.grid[index].dimensions.z = -boxgen.modulo(reposition.z, q)
                             else
                                 groups.grid[index].dimensions.z = math.min(q, grid.dimensions.z - q * (k-1))
                             end
@@ -382,6 +462,7 @@ function boxgen.breakup(grid, inspect, relocate, reposition)
                         groups.grid[index].dimensions.y = math.min(q, grid.dimensions.y - q * j)
                         groups.grid[index].dimensions.z = math.min(q, grid.dimensions.z - q * (k-1))
 					end
+                    
                     --Set the gridLengths:
 					groups.grid[index].lengths = {}
 					groups.grid[index].lengths.x = 0
@@ -406,34 +487,90 @@ function boxgen.breakup(grid, inspect, relocate, reposition)
 
 		local xGrid, yGrid, ZGrid, ind
 		index = 1
-		for i = 0, xGridLength-1, 1 do
-			xGrid = math.floor(i * grid.spacing / q)
-			for j = 0, yGridLength-1, 1 do			--Meaning that we should start counting NOT including that very first voxel
-				yGrid = math.floor(j * grid.spacing / q)
-				for k = 1, zGridLength, 1 do
-					zGrid = math.floor((k-1) * grid.spacing / q) --Since k starts at 1, we must subtract 1 from k here to get the correct grid
-					index = k + j * zGridLength + i * yGridLength * zGridLength --re-doing our array reference :)
-					--Now assign the voxel to the associated grid, hopefully the indexes line up correctly....
-					ind = 1 + zGrid + yGrid * groups.size.z + xGrid * groups.size.z * groups.size.y
-					if groups.grid[ind].numberOfVoxels == 0 then
-						groups.grid[ind].start.x = i+1
-						groups.grid[ind].start.y = j+1
-						groups.grid[ind].start.z = k
-						groups.grid[ind].fin.x = i+1
-						groups.grid[ind].fin.y = j+1
-						groups.grid[ind].fin.z = k
-					end
-					groups.grid[ind].voxels[groups.grid[ind].numberOfVoxels+1] = grid.voxels[index]
-					groups.grid[ind].numberOfVoxels = 1 + groups.grid[ind].numberOfVoxels
-					groups.grid[ind].numFilledVoxels = grid.voxels[index] + groups.grid[ind].numFilledVoxels
+        
+        if relocate == false then
+            for i = 0, xGridLength-1, 1 do
+                if groups.grid[1].dimensions.x < q and groups.size.x > 1 then
+                    if i*grid.spacing < groups.grid[1].dimensions.x then --If we are in the skinny section
+                        xGrid = 0 --Xgrid is zero
+                    else --Otherwise
+                        xGrid = math.floor((i * grid.spacing-groups.grid[1].dimensions.x) / q)+1 -- we are at least at one, and should start counting beyond teh first dimensions
+                    end
+                else
+                    xGrid = math.floor(i * grid.spacing / q)
+                end
+                for j = 0, yGridLength-1, 1 do			--Meaning that we should start counting NOT including that very first voxel
+                    if groups.grid[1].dimensions.y < q and groups.size.y > 1 then
+                        if j*grid.spacing < groups.grid[1].dimensions.y then --If we are in the skinny section
+                            yGrid = 0 --Ygrid is zero
+                        else --Otherwise
+                            yGrid = math.floor((j * grid.spacing-groups.grid[1].dimensions.y) / q)+1 -- we are at least at one, and should start counting beyond teh first dimensions
+                        end
+                    else
+                        yGrid = math.floor(j * grid.spacing / q)
+                    end
+                    for k = 1, zGridLength, 1 do
+                        if groups.grid[1].dimensions.z < q and groups.size.z > 1 then
+                            if (k-1)*grid.spacing < groups.grid[1].dimensions.z then --If we are in the skinny section
+                                zGrid = 0 --Ygrid is zero
+                            else --Otherwise
+                                zGrid = math.floor(((k-1) * grid.spacing-groups.grid[1].dimensions.z) / q)+1 -- we are at least at one, and should start counting beyond teh first dimensions
+                            end
+                        else
+                            zGrid = math.floor((k-1) * grid.spacing / q)
+                        end
+                        index = k + j * zGridLength + i * yGridLength * zGridLength --re-doing our array reference :)
+                        --Now assign the voxel to the associated grid, hopefully the indexes line up correctly....
+                        ind = 1 + zGrid + yGrid * groups.size.z + xGrid * groups.size.z * groups.size.y
+                        if groups.grid[ind].numberOfVoxels == 0 then
+                            groups.grid[ind].start.x = i+1
+                            groups.grid[ind].start.y = j+1
+                            groups.grid[ind].start.z = k
+                            groups.grid[ind].fin.x = i+1
+                            groups.grid[ind].fin.y = j+1
+                            groups.grid[ind].fin.z = k
+                        end
+                        groups.grid[ind].voxels[groups.grid[ind].numberOfVoxels+1] = grid.voxels[index]
+                        groups.grid[ind].numberOfVoxels = 1 + groups.grid[ind].numberOfVoxels
+                        groups.grid[ind].numFilledVoxels = grid.voxels[index] + groups.grid[ind].numFilledVoxels
 
-					--Now updated ends of this grid
-					groups.grid[ind].fin.x = math.max(i+1, groups.grid[ind].fin.x)
-					groups.grid[ind].fin.y = math.max(j+1, groups.grid[ind].fin.y)
-					groups.grid[ind].fin.z = math.max(k, groups.grid[ind].fin.z)
-				end
-			end
-		end
+                        --Now updated ends of this grid
+                        groups.grid[ind].fin.x = math.max(i+1, groups.grid[ind].fin.x)
+                        groups.grid[ind].fin.y = math.max(j+1, groups.grid[ind].fin.y)
+                        groups.grid[ind].fin.z = math.max(k, groups.grid[ind].fin.z)
+                    end
+                end
+            end
+        else
+            for i = 0, xGridLength-1, 1 do
+                xGrid = math.floor(i * grid.spacing / q)
+                for j = 0, yGridLength-1, 1 do			--Meaning that we should start counting NOT including that very first voxel
+                    yGrid = math.floor(j * grid.spacing / q)
+                    for k = 1, zGridLength, 1 do
+                        zGrid = math.floor((k-1) * grid.spacing / q) --Since k starts at 1, we must subtract 1 from k here to get the correct grid
+                        index = k + j * zGridLength + i * yGridLength * zGridLength --re-doing our array reference :)
+                        --Now assign the voxel to the associated grid, hopefully the indexes line up correctly....
+                        ind = 1 + zGrid + yGrid * groups.size.z + xGrid * groups.size.z * groups.size.y
+                        if groups.grid[ind].numberOfVoxels == 0 then
+                            groups.grid[ind].start.x = i+1
+                            groups.grid[ind].start.y = j+1
+                            groups.grid[ind].start.z = k
+                            groups.grid[ind].fin.x = i+1
+                            groups.grid[ind].fin.y = j+1
+                            groups.grid[ind].fin.z = k
+                        end
+                        groups.grid[ind].voxels[groups.grid[ind].numberOfVoxels+1] = grid.voxels[index]
+                        groups.grid[ind].numberOfVoxels = 1 + groups.grid[ind].numberOfVoxels
+                        groups.grid[ind].numFilledVoxels = grid.voxels[index] + groups.grid[ind].numFilledVoxels
+
+                        --Now updated ends of this grid
+                        groups.grid[ind].fin.x = math.max(i+1, groups.grid[ind].fin.x)
+                        groups.grid[ind].fin.y = math.max(j+1, groups.grid[ind].fin.y)
+                        groups.grid[ind].fin.z = math.max(k, groups.grid[ind].fin.z)
+                    end
+                end
+            end
+        end
 		--Now update the resulting grid axis lengths
 		for i = 0, groups.size.x-1, 1 do
 			for j = 0, groups.size.y-1, 1 do
