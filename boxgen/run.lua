@@ -23,14 +23,14 @@ local offset = boxgen.boundingBox(boxgen.deref(objfile))
 
 --We need to position the voxelized grid to the correct offset from our placement node
 --Which has bottom left corner at -1.5,-1.5,-1.5
-reposition.x = -1.5 - offset.x 
-reposition.y = -1.5 - offset.y
-reposition.z = -1.5 - offset.z 
+reposition.x = 1.5 + offset.x 
+reposition.y = 1.5 + offset.y
+reposition.z = 1.5 + offset.z
 
 --IF the user
 if RELOCATE then
     --Then we need to change position of all verticies in the obj file to match our output
-    boxgen.offset(FILE,OUTFILE,reposition.x,reposition.y,reposition.z)
+    boxgen.offset(FILE,OUTFILE,-reposition.x,-reposition.y,-reposition.z)
     
     objfile = boxgen.load(OUTFILE)
 end
