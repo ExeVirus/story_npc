@@ -54,7 +54,6 @@ function viewer.viewObj(objfile)
     Plotly.newPlot('myDiv', data);
     </script>
     ]])
-    print("wrote Obj.html\n")
     io.close(export)
 end
 
@@ -62,29 +61,33 @@ end
 -- Function view_result(grid) -- Shows the filled verticies from voxelize
 --
 function viewer.view_grid(grid)
-	local output = ""--String for plotly
-	--strings for x's, y's, z's :)
-	local xs = "x: ["
-	local ys = "y: ["
-	local zs = "z: ["
-	for i, v in ipairs(grid.voxel_verts) do
-		xs = xs .. v.x .. ", "
-		ys = ys .. v.y .. ", "
-		zs = zs .. v.z .. ", "
-	end
-	xs = xs .. "],\n"
-	ys = ys .. "],\n"
-	zs = zs .. "],\n"
+    local output = ""--String for plotly
+    --strings for x's, y's, z's :)
+    local xs = "x: ["
+    local ys = "y: ["
+    local zs = "z: ["
+    for i, v in ipairs(grid.voxel_verts) do
+        xs = xs .. v.x .. ", "
+        ys = ys .. v.y .. ", "
+        zs = zs .. v.z .. ", "
+        if i % 400 == 0 then
+            print("Grid Export: " .. i / grid.numberOfFilledVoxels * 100 .. "% Complete")
+        end
+    end
+    xs = xs .. "],\n"
+    ys = ys .. "],\n"
+    zs = zs .. "],\n"
 
-	output = output .. "var grid = {\n"
-	output = output .. xs
-	output = output .. ys
-	output = output .. zs
-	output = output .. "mode: 'markers',\n"
-	output = output .. "marker: { size: 2},\n"
-	output = output .. "name: 'grid',\n"
-	output = output .. "type: 'scatter3d',\n}\n"
-	return output
+    output = output .. "var grid = {\n"
+    output = output .. xs
+    output = output .. ys
+    output = output .. zs
+    output = output .. "mode: 'markers',\n"
+    output = output .. "marker: { size: 2},\n"
+    output = output .. "name: 'grid',\n"
+    output = output .. "type: 'scatter3d',\n}\n"
+     print("Grid Export: 100% Complete")
+    return output
 end
 
 function viewer.viewObjGrid(objfile, grid)
@@ -185,41 +188,41 @@ end
 --
 --name is the name on the html file you will see
 function viewer.view_subdivided_grid(grid,name)
-	local output = ""--String for plotly
-	--strings for x's, y's, z's :)
-	local xs = "x: ["
-	local ys = "y: ["
-	local zs = "z: ["
+    local output = ""--String for plotly
+    --strings for x's, y's, z's :)
+    local xs = "x: ["
+    local ys = "y: ["
+    local zs = "z: ["
 
-	local xGridLength = grid.lengths.x
-	local yGridLength = grid.lengths.y
-	local zGridLength = grid.lengths.z
+    local xGridLength = grid.lengths.x
+    local yGridLength = grid.lengths.y
+    local zGridLength = grid.lengths.z
 
-	for i = 0, xGridLength-1, 1 do
-		for j = 0, yGridLength-1, 1 do
-			for k = 1, zGridLength, 1 do
-				index = k + j * zGridLength + i * yGridLength * zGridLength--re-doing our array reference :)
-				if grid.voxels[index] == 1 then
-					xs = xs .. grid.offset.x + grid.position.x + i * grid.spacing .. ", "
-					ys = ys .. grid.offset.y + grid.position.y + j * grid.spacing .. ", "
-					zs = zs .. grid.offset.z + grid.position.z + (k-1) * grid.spacing .. ", "
-				end
-			end
-		end
-	end
-	xs = xs .. "],\n"
-	ys = ys .. "],\n"
-	zs = zs .. "],\n"
+    for i = 0, xGridLength-1, 1 do
+        for j = 0, yGridLength-1, 1 do
+            for k = 1, zGridLength, 1 do
+                index = k + j * zGridLength + i * yGridLength * zGridLength--re-doing our array reference :)
+                if grid.voxels[index] == 1 then
+                    xs = xs .. grid.offset.x + grid.position.x + i * grid.spacing .. ", "
+                    ys = ys .. grid.offset.y + grid.position.y + j * grid.spacing .. ", "
+                    zs = zs .. grid.offset.z + grid.position.z + (k-1) * grid.spacing .. ", "
+                end
+            end
+        end
+    end
+    xs = xs .. "],\n"
+    ys = ys .. "],\n"
+    zs = zs .. "],\n"
 
-	output = output .. "var " .. name .. " = {\n"
-	output = output .. xs
-	output = output .. ys
-	output = output .. zs
-	output = output .. "mode: 'markers',\n"
-	output = output .. "marker: { size: 2},\n"
-	output = output .. "name: '" .. name .. "',\n"
-	output = output .. "type: 'scatter3d',\n}\n"
-	return output
+    output = output .. "var " .. name .. " = {\n"
+    output = output .. xs
+    output = output .. ys
+    output = output .. zs
+    output = output .. "mode: 'markers',\n"
+    output = output .. "marker: { size: 2},\n"
+    output = output .. "name: '" .. name .. "',\n"
+    output = output .. "type: 'scatter3d',\n}\n"
+    return output
 end
 
 function viewer.viewObjSubGrid(objfile, grid, groups)
@@ -333,52 +336,52 @@ end
 --
 --name is the name on the html file you will see
 function viewer.view_box(box,offset,spacing,name,color,group)
-	local output = ""--String for plotly
-	--strings for x's, y's, z's :)
-	local start = box.start
-	local fin = box.fin
-	start.x = offset.x + (start.x-1) * spacing
-	start.y = offset.y + (start.y-1) * spacing
-	start.z = offset.z + (start.z-1) * spacing
-	fin.x = offset.x + (fin.x-1) * spacing
-	fin.y = offset.y + (fin.y-1) * spacing
-	fin.z = offset.z + (fin.z-1) * spacing
+    local output = ""--String for plotly
+    --strings for x's, y's, z's :)
+    local start = box.start
+    local fin = box.fin
+    start.x = offset.x + (start.x-1) * spacing
+    start.y = offset.y + (start.y-1) * spacing
+    start.z = offset.z + (start.z-1) * spacing
+    fin.x = offset.x + (fin.x-1) * spacing
+    fin.y = offset.y + (fin.y-1) * spacing
+    fin.z = offset.z + (fin.z-1) * spacing
 
-	local xs = "x: ["
-	local ys = "y: ["
-	local zs = "z: ["
-	xs = xs .. start.x .. ", " .. start.x .. ", " .. fin.x .. ", " .. fin.x .. ", " .. start.x .. ", " .. start.x .. ", " .. fin.x .. ", " .. fin.x .. ", "
-	ys = ys .. start.y .. ", " .. fin.y .. ", " .. fin.y .. ", " .. start.y .. ", " .. start.y .. ", " .. fin.y .. ", " .. fin.y .. ", " .. start.y .. ", "
-	zs = zs .. start.z .. ", " .. start.z .. ", " .. start.z .. ", " .. start.z .. ", " .. fin.z .. ", " .. fin.z .. ", " .. fin.z .. ", " .. fin.z .. ", "
-	xs = xs .. "],\n"
-	ys = ys .. "],\n"
-	zs = zs .. "],\n"
-	--Create output var
-	output = output .. "var " .. name .. " = {\n"
-	output = output .. xs
-	output = output .. ys
-	output = output .. zs
-	output = output .. "i: [7, 0, 0, 0, 4, 4, 6, 6, 4, 0, 3, 2],\n"
+    local xs = "x: ["
+    local ys = "y: ["
+    local zs = "z: ["
+    xs = xs .. start.x .. ", " .. start.x .. ", " .. fin.x .. ", " .. fin.x .. ", " .. start.x .. ", " .. start.x .. ", " .. fin.x .. ", " .. fin.x .. ", "
+    ys = ys .. start.y .. ", " .. fin.y .. ", " .. fin.y .. ", " .. start.y .. ", " .. start.y .. ", " .. fin.y .. ", " .. fin.y .. ", " .. start.y .. ", "
+    zs = zs .. start.z .. ", " .. start.z .. ", " .. start.z .. ", " .. start.z .. ", " .. fin.z .. ", " .. fin.z .. ", " .. fin.z .. ", " .. fin.z .. ", "
+    xs = xs .. "],\n"
+    ys = ys .. "],\n"
+    zs = zs .. "],\n"
+    --Create output var
+    output = output .. "var " .. name .. " = {\n"
+    output = output .. xs
+    output = output .. ys
+    output = output .. zs
+    output = output .. "i: [7, 0, 0, 0, 4, 4, 6, 6, 4, 0, 3, 2],\n"
     output = output .. "j: [3, 4, 1, 2, 5, 6, 5, 2, 0, 1, 6, 3],\n"
     output = output .. "k: [0, 7, 2, 3, 6, 7, 1, 1, 5, 5, 7, 6],\n"
-	output = output .. "opacity: 0.2, \n"
-	output = output .. "color:".. color ..",\n"
-	output = output .. "name: '" .. name .. "',\n"
+    output = output .. "opacity: 0.2, \n"
+    output = output .. "color:".. color ..",\n"
+    output = output .. "name: '" .. name .. "',\n"
     output = output .. "legendgroup: '" .. group .. "',\n"
-	output = output .. "showlegend: true,\n"
-	output = output .. "type: 'mesh3d',\n}\n"
-	return output
+    output = output .. "showlegend: true,\n"
+    output = output .. "type: 'mesh3d',\n}\n"
+    return output
 end
 
 function viewer.viewObjBoxes(objfile, grid, boxGroups)
-	local colors = {}
-	colors[1] = "'rgb(100,100,100)'"
-	colors[2] = "'rgb(175,75,75)'"
-	colors[3] = "'rgb(75,175,75)'"
-	colors[4] = "'rgb(75,75,175)'"
-	colors[5] = "'rgb(135,135,50)'"
-	colors[6] = "'rgb(135,50,135)'"
-	colors[7] = "'rgb(50,135,135)'"
+    local colors = {}
+    colors[1] = "'rgb(100,100,100)'"
+    colors[2] = "'rgb(175,75,75)'"
+    colors[3] = "'rgb(75,175,75)'"
+    colors[4] = "'rgb(75,75,175)'"
+    colors[5] = "'rgb(135,135,50)'"
+    colors[6] = "'rgb(135,50,135)'"
+    colors[7] = "'rgb(50,135,135)'"
 
 
     local export = io.open("Boxes.html", "w+")
@@ -390,9 +393,17 @@ function viewer.viewObjBoxes(objfile, grid, boxGroups)
     io.write("<script>\n")
     io.write(viewer.view_grid(grid))
     --Export all the resulting boxes
+    local totalBoxes = 0
+    for i = 1, boxGroups.size.x*boxGroups.size.y*boxGroups.size.z, 1 do
+        totalBoxes = totalBoxes + boxGroups[i].numBoxes
+    end
+    local boxesProcessed = 0
+    
     for i = 1, boxGroups.size.x*boxGroups.size.y*boxGroups.size.z, 1 do
         for j = 1, boxGroups[i].numBoxes, 1 do
             io.write(viewer.view_box(boxGroups[i].boxes[j], boxGroups[i].offset, boxGroups.spacing, "set" .. i .."box" .. j, colors[((i-1) % 7)+1],"set" .. i))
+            boxesProcessed = boxesProcessed + 1
+            print("Boxes.html Box Export: " .. boxesProcessed / totalBoxes * 100 .. "% complete")
         end
     end
     io.write("var data = [{ \n")

@@ -2,14 +2,13 @@
 
 ## A Lua-based auto-matic collision-box generator
 
-* Accepts water-tight obj files, though you can make any mesh watertight
+* Accepts water-tight obj files (you can make any mesh watertight)
 * You specify the accuracy and minimum size of boxes generated
 * Automatically breaks obj files larger than 3 in any axis direction into multiple nodes
 * Outputs information in a friendly minetest format for use with an extended register function for such entities. I.e. a register_node() replacement
 
 ## To-Be-Completed
 
-2. Code Cleanup and create command line lua interface (-i for interactive)
 3. Minetest Supporting Mod with new register .box node function
     * Simply hand the register function normal node def. and the .box filename/location instead of a collision box
     * Implement an on_place function that checks for available space, and will place nodes in correct positions, and tell user when it fails why it fails
