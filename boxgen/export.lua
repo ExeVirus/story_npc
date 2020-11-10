@@ -180,7 +180,7 @@ function boxesToString(input)
             --Subtract the offset, then move to -1.5 starting point
             local start = vector.subtract(vector.subtract(input.boxes[i].start, input.offset),1.5)
             local fin = vector.subtract(vector.subtract(input.boxes[i].fin, input.offset),1.5)
-            Str = Str .. "{" .. start.x.. ", " .. start.y .. ", " ..start.z .. ", " ..fin.x .. ", " ..fin.y .. ", " ..fin.z .. "}"
+            Str = Str .. "{" .. -start.x.. ", " .. start.y .. ", " ..start.z .. ", " ..fin.x .. ", " ..fin.y .. ", " ..fin.z .. "}"
             i = i + 1
         end
     end
@@ -193,7 +193,7 @@ end
 --
 -- Checks the input.offset and sees if it's really close to -1.5,-1.5,-1.5
 
-function CheckPlacement(input) 
+function CheckPlacement(input)
     local x,y,z --booleans
     local ep = 0.001 --epsilon
     x = input.offset.x < 0 and (input.offset.x + input.dimension.x) > 0
@@ -207,15 +207,15 @@ function export.format(input, relocate)
 	--Load only stuff I need into data from input
     local Placement_Index = -1
     if relocate == false then
-        --Typically the first boxgroup we come across is not the placement node's boxgroup 
-        --when not doing relocation. Which means we first seach and find that placement node 
+        --Typically the first boxgroup we come across is not the placement node's boxgroup
+        --when not doing relocation. Which means we first seach and find that placement node
         --save it's data, set it's numBoxes to zero, and start over counting
-        
+
         --When we come across the correct position for the node, we'll populate data.nodes[1]
         --This way, later in Minetest, we can always assume the placement node is in [1]. Nifty;)
         data.nodes = {} --To be filled with each collision/selection box set and associated x,y,z coord
         data.numNodes = 1 -- to be added to later
-        
+
         if input.size.x * input.size.y * input.size.z > 1 then
             for a = 0, input.size.x-1, 1 do
                 for b = 0, input.size.y-1, 1 do
@@ -248,7 +248,7 @@ function export.format(input, relocate)
                         end
                     end
                 end
-            end        
+            end
         else
             data.nodes[1] = {}
             data.nodes[1].boxList = boxesToString(input[1])
