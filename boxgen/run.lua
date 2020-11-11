@@ -59,7 +59,8 @@ viewer.viewObjBoxes(objfile, grid, boxGroups)
 --make a list of x,y,z (in node-coords) from placement node to where these collision and selection boxes
 --Should go. I.e. @ y = 1 (1 above) placement node, use this string for collision boxes and this string for selection boxes:
 local output = export.format(boxGroups, settings.relocate)
-inspect() --This only exists because of jankiness with luajit
+print(inspect(output))
+ --This only exists because of jankiness with luajit
 --
 -- Export Minetest Readable data (JSON-Like)
 --

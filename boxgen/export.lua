@@ -172,6 +172,40 @@ function export.serialize(x)
     end
 end
 
+local function safe_loadstring(...)
+	local func, err = loadstring(...)
+	if func then
+		setfenv(func, {})
+		return func
+	end
+	return nil, err
+end
+
+local function dummy_func() end
+
+function export.deserialize(str, safe)
+	if type(str) ~= "string" then
+		return nil, "Cannot deserialize type '"..type(str)
+			.."'. Argument must be a string."
+	end
+	if str:byte(1) == 0x1B then
+		return nil, "Bytecode prohibited"
+	end
+	local f, err = loadstring(str)
+	if not f then return nil, err end
+
+	-- The environment is recreated every time so deseralized code cannot
+	-- pollute it with permanent references.
+	setfenv(f, {loadstring = safe and dummy_func or safe_loadstring})
+
+	local good, data = pcall(f)
+	if good then
+		return data
+	else
+		return nil, data
+	end
+end
+
 function boxesToString(input)
     local Str = "{"
     local i = 1
@@ -180,7 +214,7 @@ function boxesToString(input)
             --Subtract the offset, then move to -1.5 starting point
             local start = vector.subtract(vector.subtract(input.boxes[i].start, input.offset),1.5)
             local fin = vector.subtract(vector.subtract(input.boxes[i].fin, input.offset),1.5)
-            Str = Str .. "{" .. start.x.. ", " .. start.y .. ", " ..start.z .. ", " ..fin.x .. ", " ..fin.y .. ", " ..fin.z .. "}"
+            Str = Str .. "{" .. -start.x.. ", " .. start.y .. ", " ..start.z .. ", " ..-fin.x .. ", " ..fin.y .. ", " ..fin.z .. "},"
             i = i + 1
         end
     end
@@ -191,7 +225,7 @@ end
 --
 -- CheckPlacement
 --
--- Checks the input.offset and sees if it's really close to -1.5,-1.5,-1.5
+-- Checks the provided set of boxes caputures 0,0,0
 
 function CheckPlacement(input) 
     local x,y,z --booleans
@@ -232,24 +266,28 @@ function export.format(input, relocate)
                         end
                     end
                 end
-             end
-             for a = 0, input.size.x-1, 1 do
-                for b = 0, input.size.y-1, 1 do
-                    for c = 1, input.size.z, 1 do
-                        local grindex = c+b*input.size.z+a*input.size.z*input.size.y
-                        if input[grindex].numBoxes > 0 and grindex ~= Placement_Index then
-                            data.numNodes = data.numNodes + 1
-                            data.nodes[data.numNodes] = {}
-                            data.nodes[data.numNodes].boxList = boxesToString(input[grindex])
-                            data.nodes[data.numNodes].position = {}
-                            data.nodes[data.numNodes].position.x = a   - data.nodes[1].position.x
-                            data.nodes[data.numNodes].position.y = b   - data.nodes[1].position.y
-                            data.nodes[data.numNodes].position.z = c-1 - data.nodes[1].position.z
-                        end
-                    end
-                end
-            end        
-        else
+			end
+			for a = 0, input.size.x-1, 1 do
+				for b = 0, input.size.y-1, 1 do
+					for c = 1, input.size.z, 1 do
+						local grindex = c+b*input.size.z+a*input.size.z*input.size.y
+						if input[grindex].numBoxes > 0 and grindex ~= Placement_Index then
+							data.numNodes = data.numNodes + 1
+							data.nodes[data.numNodes] = {}
+							data.nodes[data.numNodes].boxList = boxesToString(input[grindex])
+							data.nodes[data.numNodes].position = {}
+							data.nodes[data.numNodes].position.x = a   - data.nodes[1].position.x
+							data.nodes[data.numNodes].position.y = b   - data.nodes[1].position.y
+							data.nodes[data.numNodes].position.z = c-1 - data.nodes[1].position.z
+						end
+					end
+				end
+            end
+			--After adjusting all positions, set original to origin
+			data.nodes[1].position.x = 0
+			data.nodes[1].position.y = 0
+			data.nodes[1].position.z = 0
+        else --only one set of boxes:
             data.nodes[1] = {}
             data.nodes[1].boxList = boxesToString(input[1])
             data.nodes[1].position = {}

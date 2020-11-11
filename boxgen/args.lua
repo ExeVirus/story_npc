@@ -153,7 +153,7 @@ function getArgs(arg)
         --run.lua c <filename> <relocate> <outfile> <spacing> <minfill> <minvol> <minqual>
         
         --filename should be given, but whatever
-        if arg[2] ~= "-" and arg[3] ~= nil then
+        if arg[2] ~= "-" and arg[2] ~= nil then
             settings.filename = arg[2]
             local f = io.open(settings.filename,"r")
             if f == nil then 
@@ -223,7 +223,7 @@ There are three ways to specify arguments for this program:
   2. User specified .lua settings file: "run.lua -f <path+filename.lua>"
       a. see settings.lua for example
      
-  3. Via command line:
+  3. Directly:
       a.     run.lua -c <filename> <relocate> <outfile> <spacing> <minfill> <minvol> <minqual>
       b. eg: run.lua -c models/example.obj false - 0.2 - 0.08 0.1
       c. If you specify "-" for any parameters, the default will be used.   
