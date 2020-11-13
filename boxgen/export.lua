@@ -259,9 +259,9 @@ function export.format(input, relocate)
                             data.nodes[1] = {}
                             data.nodes[1].boxList = boxesToString(input[grindex])
                             data.nodes[1].position = {}
-                            data.nodes[1].position.x = a
-                            data.nodes[1].position.y = b
-                            data.nodes[1].position.z = c-1
+                            data.nodes[1].position.x = a * 3
+                            data.nodes[1].position.y = b * 3
+                            data.nodes[1].position.z = (c-1) * 3
                             Placement_Index = grindex
                         end
                     end
@@ -276,9 +276,9 @@ function export.format(input, relocate)
 							data.nodes[data.numNodes] = {}
 							data.nodes[data.numNodes].boxList = boxesToString(input[grindex])
 							data.nodes[data.numNodes].position = {}
-							data.nodes[data.numNodes].position.x = a   - data.nodes[1].position.x
-							data.nodes[data.numNodes].position.y = b   - data.nodes[1].position.y
-							data.nodes[data.numNodes].position.z = c-1 - data.nodes[1].position.z
+							data.nodes[data.numNodes].position.x = a * 3     - data.nodes[1].position.x
+							data.nodes[data.numNodes].position.y = b * 3     - data.nodes[1].position.y
+							data.nodes[data.numNodes].position.z = (c-1) * 3 - data.nodes[1].position.z
 						end
 					end
 				end
@@ -318,9 +318,9 @@ function export.format(input, relocate)
                             data.nodes[data.numNodes] = {}
                             data.nodes[data.numNodes].boxList = boxesToString(input[grindex])
                             data.nodes[data.numNodes].position = {}
-                            data.nodes[data.numNodes].position.x = a
-                            data.nodes[data.numNodes].position.y = b
-                            data.nodes[data.numNodes].position.z = c-1
+                            data.nodes[data.numNodes].position.x = a * 3
+                            data.nodes[data.numNodes].position.y = b * 3
+                            data.nodes[data.numNodes].position.z = (c-1) * 3
                             --Calculate each individual 3x3x3 node's collision and selection boxes and save in array that corresponds with its size
                         end
                     end
