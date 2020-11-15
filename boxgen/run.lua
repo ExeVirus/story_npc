@@ -50,6 +50,7 @@ local groups = boxgen.breakup(grid, inspect, settings.relocate, reposition)
 
 --Now to calculate our collision boxes
 local boxGroups = boxgen.boxify(groups, settings.minfill, settings.minvol, settings.minqual, inspect)
+print(inspect(boxGroups))
 
 --Export the boxes for viewing
 viewer.viewObjBoxes(objfile, grid, boxGroups)

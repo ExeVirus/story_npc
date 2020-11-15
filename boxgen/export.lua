@@ -21,6 +21,7 @@ local inspect = require "./inspect"
 -- @return load()able string containing the value.
 
 local export = {}
+
 function export.serialize(x)
     local local_index  = 1  -- Top index of the "_" local table in the dump
     -- table->nil/1/2 set of tables seen.
@@ -206,14 +207,44 @@ function export.deserialize(str, safe)
 	end
 end
 
-function boxesToString(input)
+local function copy(obj, seen)
+  if type(obj) ~= 'table' then return obj end
+  if seen and seen[obj] then return seen[obj] end
+  local s = seen or {}
+  local res = setmetatable({}, getmetatable(obj))
+  s[obj] = res
+  for k, v in pairs(obj) do res[copy(k, s)] = copy(v, s) end
+  return res
+end
+
+local function boxesToString(input, spacing, position)
     local Str = "{"
     local i = 1
     if input.numBoxes > 0 then
         while (i < input.numBoxes+1) do
-            --Subtract the offset, then move to -1.5 starting point
-            local start = vector.subtract(vector.subtract(input.boxes[i].start, input.offset),1.5)
-            local fin = vector.subtract(vector.subtract(input.boxes[i].fin, input.offset),1.5)
+            --Subtract the offset, then move to -1.5 starting point, then deal with dimensions
+			local start = copy(input.boxes[i].start)
+			local fin = copy(input.boxes[i].fin)
+			start.x = math.max((start.x-1) * spacing - 1.5, -1.5)
+			start.y = math.max((start.y-1) * spacing - 1.5, -1.5)
+			start.z = math.max((start.z-1) * spacing - 1.5, -1.5)
+			fin.x   = math.min((fin.x-1) * spacing - 1.5, 1.5)
+			fin.y   = math.min((fin.y-1) * spacing - 1.5, 1.5)
+			fin.z   = math.min((fin.z-1) * spacing - 1.5, 1.5)
+			
+			--adjust for small boxes under or behind the placement node
+			if input.dimension.x < 3 and position.x < 0 then
+				start.x = 	math.max(start.x + 3 - input.dimension.x, -1.5)
+				fin.x 	= 	math.min(fin.x 	 + 3 - input.dimension.x,  1.5)
+			end
+			if input.dimension.y < 3 and position.y < 0 then
+				start.y = 	math.max(start.y + 3 - input.dimension.y, -1.5)
+				fin.y 	= 	math.min(fin.y   + 3 - input.dimension.y,  1.5)
+			end
+			if input.dimension.z < 3 and position.z < 0 then
+				start.z = 	math.max(start.z + 3 - input.dimension.z, -1.5)
+				fin.z 	= 	math.min(fin.z   + 3 - input.dimension.z,  1.5)
+			end
             Str = Str .. "{" .. -start.x.. ", " .. start.y .. ", " ..start.z .. ", " ..-fin.x .. ", " ..fin.y .. ", " ..fin.z .. "},"
             i = i + 1
         end
@@ -222,12 +253,46 @@ function boxesToString(input)
     return Str
 end
 
+local function boxesToTable(input, spacing, position)
+	local tbl = {}
+	local i = 1
+	if input.numBoxes > 0 then
+		while (i < input.numBoxes+1) do
+            --Subtract the offset, then move to -1.5 starting point
+			local start = copy(input.boxes[i].start)
+			local fin = copy(input.boxes[i].fin)
+			start.x = math.max((start.x-1) * spacing - 1.5, -1.5)
+			start.y = math.max((start.y-1) * spacing - 1.5, -1.5)
+			start.z = math.max((start.z-1) * spacing - 1.5, -1.5)
+			fin.x   = math.min((fin.x-1) * spacing - 1.5, 1.5)
+			fin.y   = math.min((fin.y-1) * spacing - 1.5, 1.5)
+			fin.z   = math.min((fin.z-1) * spacing - 1.5, 1.5)
+			
+			--adjust for small boxes under or behind the placement node
+			if input.dimension.x < 3 and position.x < 0 then
+				start.x = 	math.max(start.x + 3 - input.dimension.x, -1.5)
+				fin.x 	= 	math.min(fin.x 	 + 3 - input.dimension.x,  1.5)
+			end
+			if input.dimension.y < 3 and position.y < 0 then
+				start.y = 	math.max(start.y + 3 - input.dimension.y, -1.5)
+				fin.y 	= 	math.min(fin.y   + 3 - input.dimension.y,  1.5)
+			end
+			if input.dimension.z < 3 and position.z < 0 then
+				start.z = 	math.max(start.z + 3 - input.dimension.z, -1.5)
+				fin.z 	= 	math.min(fin.z   + 3 - input.dimension.z,  1.5)
+			end
+			tbl[i] = {-start.x, start.y, start.z, -fin.x, fin.y, fin.z }
+            i = i + 1
+        end
+	end
+	return tbl
+end
 --
 -- CheckPlacement
 --
 -- Checks the provided set of boxes caputures 0,0,0
 
-function CheckPlacement(input) 
+local function CheckPlacement(input) 
     local x,y,z --booleans
     local ep = 0.001 --epsilon
     x = input.offset.x < 0 and (input.offset.x + input.dimension.x) > 0
@@ -235,6 +300,8 @@ function CheckPlacement(input)
     z = input.offset.z < 0 and (input.offset.z + input.dimension.z) > 0
     return x and y and z
 end
+
+
 
 function export.format(input, relocate)
     local data = {}
@@ -257,11 +324,12 @@ function export.format(input, relocate)
                         local grindex = c+b*input.size.z+a*input.size.z*input.size.y
                         if CheckPlacement(input[grindex]) then
                             data.nodes[1] = {}
-                            data.nodes[1].boxList = boxesToString(input[grindex])
                             data.nodes[1].position = {}
-                            data.nodes[1].position.x = a * 3
+                            data.nodes[1].position.x = -(a * 3)
                             data.nodes[1].position.y = b * 3
                             data.nodes[1].position.z = (c-1) * 3
+							data.nodes[1].boxList = boxesToString(input[grindex], input.spacing, data.nodes[1].position)
+							data.nodes[1].boxTable = boxesToTable(input[grindex], input.spacing, data.nodes[1].position)
                             Placement_Index = grindex
                         end
                     end
@@ -274,11 +342,12 @@ function export.format(input, relocate)
 						if input[grindex].numBoxes > 0 and grindex ~= Placement_Index then
 							data.numNodes = data.numNodes + 1
 							data.nodes[data.numNodes] = {}
-							data.nodes[data.numNodes].boxList = boxesToString(input[grindex])
 							data.nodes[data.numNodes].position = {}
-							data.nodes[data.numNodes].position.x = a * 3     - data.nodes[1].position.x
+							data.nodes[data.numNodes].position.x = -(a * 3)     - data.nodes[1].position.x
 							data.nodes[data.numNodes].position.y = b * 3     - data.nodes[1].position.y
 							data.nodes[data.numNodes].position.z = (c-1) * 3 - data.nodes[1].position.z
+							data.nodes[data.numNodes].boxList = boxesToString(input[grindex], input.spacing, data.nodes[data.numNodes].position)
+							data.nodes[data.numNodes].boxTable = boxesToTable(input[grindex], input.spacing, data.nodes[data.numNodes].position)
 						end
 					end
 				end
@@ -289,11 +358,12 @@ function export.format(input, relocate)
 			data.nodes[1].position.z = 0
         else --only one set of boxes:
             data.nodes[1] = {}
-            data.nodes[1].boxList = boxesToString(input[1])
             data.nodes[1].position = {}
             data.nodes[1].position.x = 0
             data.nodes[1].position.y = 0
             data.nodes[1].position.z = 0
+			data.nodes[1].boxList = boxesToString(input[1], input.spacing, data.nodes[1].position)
+			data.nodes[1].boxTable = boxesToTable(input[1], input.spacing, data.nodes[1].position)
         end
     else
         data.nodes = {} --To be filled with each collision/selection box set and associated x,y,z coord
@@ -301,11 +371,12 @@ function export.format(input, relocate)
         if input.size.x * input.size.y * input.size.z > 1 then
             --Set up the placement node
             data.nodes[1] = {}
-            data.nodes[1].boxList = boxesToString(input[1])
             data.nodes[1].position = {}
             data.nodes[1].position.x = 0
             data.nodes[1].position.y = 0
             data.nodes[1].position.z = 0
+			data.nodes[1].boxList = boxesToString(input[1], input.spacing, data.nodes[1].position)
+			data.nodes[1].boxTable = boxesToTable(input[1], input.spacing, data.nodes[1].position)
             Placement_Index = 1
             for a = 0, input.size.x-1, 1 do
                 for b = 0, input.size.y-1, 1 do
@@ -316,11 +387,12 @@ function export.format(input, relocate)
                             --The first index is always the placement node in this setup.
                             data.numNodes = data.numNodes + 1
                             data.nodes[data.numNodes] = {}
-                            data.nodes[data.numNodes].boxList = boxesToString(input[grindex])
                             data.nodes[data.numNodes].position = {}
-                            data.nodes[data.numNodes].position.x = a * 3
+                            data.nodes[data.numNodes].position.x = -(a * 3)
                             data.nodes[data.numNodes].position.y = b * 3
                             data.nodes[data.numNodes].position.z = (c-1) * 3
+							data.nodes[data.numNodes].boxList = boxesToString(input[grindex], input.spacing, data.nodes[data.numNodes].position)
+							data.nodes[data.numNodes].boxTable = boxesToTable(input[grindex], input.spacing, data.nodes[data.numNodes].position)
                             --Calculate each individual 3x3x3 node's collision and selection boxes and save in array that corresponds with its size
                         end
                     end
@@ -328,11 +400,12 @@ function export.format(input, relocate)
             end
         else
             data.nodes[1] = {}
-            data.nodes[1].boxList = boxesToString(input[1])
             data.nodes[1].position = {}
             data.nodes[1].position.x = 0
             data.nodes[1].position.y = 0
             data.nodes[1].position.z = 0
+			data.nodes[1].boxList = boxesToString(input[1], input.spacing, data.nodes[1].position)
+			data.nodes[1].boxTable = boxesToTable(input[1], input.spacing, data.nodes[1].position)
         end
     end
 

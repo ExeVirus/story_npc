@@ -330,6 +330,15 @@ function viewer.viewObjSubGrid(objfile, grid, groups)
     io.close(export)
 end
 
+local function copy(obj, seen)
+  if type(obj) ~= 'table' then return obj end
+  if seen and seen[obj] then return seen[obj] end
+  local s = seen or {}
+  local res = setmetatable({}, getmetatable(obj))
+  s[obj] = res
+  for k, v in pairs(obj) do res[copy(k, s)] = copy(v, s) end
+  return res
+end
 
 --
 --Function view_boxes(box,offset,spacing,name) exports a single box plot from boxify
@@ -338,8 +347,8 @@ end
 function viewer.view_box(box,offset,spacing,name,color,group)
     local output = ""--String for plotly
     --strings for x's, y's, z's :)
-    local start = box.start
-    local fin = box.fin
+    local start = copy(box.start)
+    local fin = copy(box.fin)
     start.x = offset.x + (start.x-1) * spacing
     start.y = offset.y + (start.y-1) * spacing
     start.z = offset.z + (start.z-1) * spacing

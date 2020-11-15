@@ -325,7 +325,7 @@ function boxgen.breakup(grid, inspect, relocate, reposition)
         groups.size.z = math.floor((grid.dimensions.z / q))+1
     end
     groups.grid = {}
-    if (groups.size.x + groups.size.y + groups.size.z ~= q) then
+    if (groups.size.x + groups.size.y + groups.size.z ~= 3) then
         local index = 1
         --First set up our various grids for being filled with voxels
         for i = 0, groups.size.x-1, 1 do
@@ -337,7 +337,8 @@ function boxgen.breakup(grid, inspect, relocate, reposition)
                     groups.grid[index].numFilledVoxels = 0
                     groups.grid[index].spacing = grid.spacing
                     groups.grid[index].voxels = {}
-                    --Calculate the offsets
+                    --Calculate the offsets and affects from reposition
+					groups.grid[index].repo = {x=0,y=0,z=0}
                     groups.grid[index].offset = {}
                     if relocate == false then
                         if grid.offset.x < -1.5 then 
@@ -345,6 +346,7 @@ function boxgen.breakup(grid, inspect, relocate, reposition)
                                 groups.grid[index].offset.x = grid.offset.x
                             else
                                 groups.grid[index].offset.x = grid.offset.x + q * (i-1) - boxgen.modulo(reposition.x,q)
+								groups.grid[index].repo.x = boxgen.modulo(reposition.x,q)
                             end
                         else
                             groups.grid[index].offset.x = grid.offset.x + q * (i)
@@ -354,6 +356,7 @@ function boxgen.breakup(grid, inspect, relocate, reposition)
                                 groups.grid[index].offset.y = grid.offset.y
                             else
                                 groups.grid[index].offset.y = grid.offset.y + q * (j-1) - boxgen.modulo(reposition.y,q)
+								groups.grid[index].repo.y = boxgen.modulo(reposition.y,q)
                             end
                         else
                             groups.grid[index].offset.y = grid.offset.y + q * (j)
@@ -363,6 +366,7 @@ function boxgen.breakup(grid, inspect, relocate, reposition)
                                 groups.grid[index].offset.z = grid.offset.z
                             else
                                 groups.grid[index].offset.z = grid.offset.z + q * (k-2) - boxgen.modulo(reposition.z,q)
+								groups.grid[index].repo.z = boxgen.modulo(reposition.z,q)
                             end
                         else
                             groups.grid[index].offset.z = grid.offset.z + q * (k-1)
