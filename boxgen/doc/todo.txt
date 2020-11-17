@@ -1,0 +1,19 @@
+1. Test and ensure that respect nodes works
+2. break out boxgen into its own mod project
+3. Create basic word-based overview in readme on github
+4. Create Wiki tutorial with pictures on github (which can later be transferred to gitlab no issue)
+5. Upload Version 1 of autobox to contentDB
+6. Create First Mod using autobox + wiki tutorial, also document the steps for each model with screen2Gif + audio recorder to later create a video. Show testing and integration steps here. 
+	a. Make sure mod either uses crafting recipes or a new adventure based point collection system (particles) to allow a user to create these objects  
+7. Create Youtube account and upload first video for explaining how to use autobox mod. 
+8. Curves mod. implements a more-blocks interface, all are single node representations
+	1. 90 degree angle ramp, 3x3 (done)
+	2. 90 degree angle ramp, 2x2 (done)
+	3. 90 degree angle ramp, 1x2 (done)
+	4. 90 degree angle ramp, 1x3 (done)
+	5. 90 degree angle ramp, 2x3 (done)
+	6. 180 degree angle semicircle, 2x3 (done)
+	7. 270 degree angle semicircle, 3x3 (done)
+	8. 360 degree angle semicircle, 3x3 (done)
+
+	Heights provided for the above: same as moreblocks

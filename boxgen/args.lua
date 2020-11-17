@@ -163,7 +163,7 @@ function getArgs(arg)
         end
     
         if arg[3] ~=  "-" and arg[3] ~=nil then
-            setting.relocate = arg[3]
+            settings.relocate = arg[3]
             if settings.relocate == "true" then
                 settings.relocate = true
             elseif settings.relocate == "false" then
